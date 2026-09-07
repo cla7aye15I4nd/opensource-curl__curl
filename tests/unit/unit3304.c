@@ -95,6 +95,10 @@ static CURLcode test_unit3304(const char *arg)
               "peer key build failed");
   fail_unless(key1 && key2 && strcmp(key1, key2),
               "native CA store must produce a different peer key");
+  fail_unless(strstr(key1, ":NATIVE-CA-0"),
+              "non-native CA key must use the new key format");
+  fail_unless(strstr(key2, ":NATIVE-CA-1"),
+              "native CA key must use the new key format");
   curlx_safefree(key1);
   curlx_safefree(key2);
 
