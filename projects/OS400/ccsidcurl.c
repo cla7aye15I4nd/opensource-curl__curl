@@ -680,8 +680,12 @@ CURLcode curl_easy_getinfo_ccsid(CURL *curl, CURLINFO info, ...)
       default:
         slp = (struct curl_slist **)paramp;
         if(*slp) {
-          *slp = slist_convert(*slp, ASCII_CCSID, ccsid);
-          if(!*slp)
+          struct curl_slist *from = *slp;
+          struct curl_slist *to = slist_convert(from, ASCII_CCSID, ccsid);
+
+          curl_slist_free_all(from);
+          *slp = to;
+          if(!to)
             result = CURLE_OUT_OF_MEMORY;
         }
         break;
