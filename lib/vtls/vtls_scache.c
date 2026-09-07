@@ -248,6 +248,11 @@ static CURLcode ssl_peer_key_build(struct ssl_primary_config *ssl,
   result = ssl_peer_key_add_vrfy(&buf, ssl, peer);
   if(result)
     goto out;
+  if(ssl->native_ca_store) {
+    result = curlx_dyn_add(&buf, ":NATIVE-CA");
+    if(result)
+      goto out;
+  }
   if(ssl->version || ssl->version_max) {
     result = curlx_dyn_addf(&buf, ":TLSVER-%d-%u", ssl->version,
                             (ssl->version_max >> 16));

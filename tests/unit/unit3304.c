@@ -22,9 +22,9 @@
  *
  ***************************************************************************/
 
-/* Unit tests for TLS session cache peer key discrimination on mTLS fields.
+/* Unit tests for TLS session cache peer key discrimination.
  * Verifies that Curl_ssl_peer_key_build() produces distinct keys when two
- * handles differ only on key, key_type or cert_type.  key_passwd is NOT
+ * handles differ only on native CA use or an mTLS field. key_passwd is NOT
  * embedded in the peer key; it is compared separately at session lookup via
  * cf_ssl_scache_match_auth().
  */
@@ -86,6 +86,28 @@ static CURLcode test_unit3304(const char *arg)
               "identical config should produce identical peer key");
   curlx_safefree(key1);
   curlx_safefree(key2);
+
+  /* Different CA trust sources must produce different peer keys. */
+  fail_unless(!Curl_ssl_peer_key_make(&peer, &ssl, "test", &key1),
+              "peer key build failed");
+  ssl.native_ca_store = TRUE;
+  fail_unless(!Curl_ssl_peer_key_make(&peer, &ssl, "test", &key2),
+              "peer key build failed");
+  fail_unless(key1 && key2 && strcmp(key1, key2),
+              "native CA store must produce a different peer key");
+  curlx_safefree(key1);
+  curlx_safefree(key2);
+
+  /* Baseline with the native CA store remains stable. */
+  fail_unless(!Curl_ssl_peer_key_make(&peer, &ssl, "test", &key1),
+              "peer key build failed");
+  fail_unless(!Curl_ssl_peer_key_make(&peer, &ssl, "test", &key2),
+              "peer key build failed");
+  fail_unless(key1 && key2 && !strcmp(key1, key2),
+              "identical native CA config should produce identical peer key");
+  curlx_safefree(key1);
+  curlx_safefree(key2);
+  ssl.native_ca_store = FALSE;
 
   /* key_passwd is NOT in the peer key: lookup uses timing-safe comparison
    * via cf_ssl_scache_match_auth(). */
