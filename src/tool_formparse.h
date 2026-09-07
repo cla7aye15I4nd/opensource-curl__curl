@@ -42,6 +42,7 @@ struct tool_mime {
   toolmimekind kind;            /* Part kind. */
   struct tool_mime *parent;     /* Parent item. */
   struct tool_mime *prev;       /* Previous sibling (reverse order link). */
+  unsigned int level;           /* Nesting level. */
   /* Common fields. */
   char *data;                   /* Actual data or data filename. */
   char *name;                   /* Part name. */

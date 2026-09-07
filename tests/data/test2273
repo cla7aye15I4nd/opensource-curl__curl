@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+cmdline
+HTTP MIME
+--form
+</keywords>
+</info>
+
+# Client-side
+<client>
+<features>
+Mime
+</features>
+<name>
+reject excessive multipart form nesting
+</name>
+<command>
+http://example.com/
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "x=("
+--form "leaf=value"
+</command>
+</client>
+
+# Verify data after the test has been "shot"
+<verify>
+<errorcode>
+2
+</errorcode>
+<stderr mode="text">
+Warning: Maximum multipart nesting depth exceeded
+curl: option --form: is badly used here
+%if manual
+curl: try 'curl --help' or 'curl --manual' for more information
+%else
+curl: try 'curl --help' for more information
+%endif
+</stderr>
+</verify>
+</testcase>

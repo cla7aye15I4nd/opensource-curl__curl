@@ -29,6 +29,8 @@
 #include "tool_formparse.h"
 #include "tool_parsecfg.h"
 
+#define MAX_FORM_LEVELS 40 /* avoid deep nesting */
+
 /* tool_mime functions. */
 static struct tool_mime *tool_mime_new(struct tool_mime *parent,
                                        toolmimekind kind)
@@ -38,6 +40,7 @@ static struct tool_mime *tool_mime_new(struct tool_mime *parent,
   if(m) {
     m->kind = kind;
     m->parent = parent;
+    m->level = parent ? parent->level + 1 : 0;
     if(parent) {
       m->prev = parent->subparts;
       parent->subparts = m;
@@ -48,6 +51,10 @@ static struct tool_mime *tool_mime_new(struct tool_mime *parent,
 
 static struct tool_mime *tool_mime_new_parts(struct tool_mime *parent)
 {
+  if(parent && parent->level >= MAX_FORM_LEVELS) {
+    warnf("Maximum multipart nesting depth exceeded");
+    return NULL;
+  }
   return tool_mime_new(parent, TOOLMIME_PARTS);
 }
 
