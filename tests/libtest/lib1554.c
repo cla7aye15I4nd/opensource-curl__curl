@@ -95,8 +95,36 @@ static CURLcode test_lib1554(const char *URL)
                       curl_easy_strerror(result));
         goto test_cleanup;
       }
+
+      if(!i) {
+        CURLSHcode scode;
+
+        scode = curl_share_setopt(share, CURLSHOPT_UNSHARE,
+                                  CURL_LOCK_DATA_CONNECT);
+        if(scode != CURLSHE_OK) {
+          curl_mfprintf(stderr, "curl_share_setopt() failed: %s\n",
+                        curl_share_strerror(scode));
+          result = CURLE_FAILED_INIT;
+          goto test_cleanup;
+        }
+
+        /* Re-sharing keeps the existing connection pool available. */
+        scode = curl_share_setopt(share, CURLSHOPT_SHARE,
+                                  CURL_LOCK_DATA_CONNECT);
+        if(scode != CURLSHE_OK) {
+          curl_mfprintf(stderr, "curl_share_setopt() failed: %s\n",
+                        curl_share_strerror(scode));
+          result = CURLE_FAILED_INIT;
+          goto test_cleanup;
+        }
+      }
     }
   }
+
+  /* Leave the connection type unshared when destroying the share. */
+  if(curl_share_setopt(share, CURLSHOPT_UNSHARE,
+                       CURL_LOCK_DATA_CONNECT) != CURLSHE_OK)
+    result = CURLE_FAILED_INIT;
 
 test_cleanup:
   curl_share_cleanup(share);

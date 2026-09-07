@@ -37,7 +37,7 @@ static void share_destroy(struct Curl_share *share)
   if(!share)
     return;
 
-  if(share->specifier & (1 << CURL_LOCK_DATA_CONNECT)) {
+  if(share->cpool.initialized) {
     Curl_cpool_destroy(&share->cpool, share->admin);
   }
 
