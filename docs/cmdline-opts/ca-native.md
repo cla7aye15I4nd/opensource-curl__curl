@@ -28,6 +28,11 @@ This option works with OpenSSL and its forks (BoringSSL, LibreSSL, etc) on
 Windows (Added in 7.71.0) and on Apple OS when libcurl is built with
 Apple SecTrust enabled. (Added in 8.17.0)
 
+With OpenSSL on Windows, only certificates in the Trusted Root Certification
+Authorities (ROOT) store are imported as trust anchors. The Intermediate
+Certification Authorities (CA) store is not imported. Servers need to send the
+intermediate certificates needed to build their chain to a trusted root.
+
 This option works with wolfSSL on Windows, Linux (Debian, Ubuntu, Gentoo,
 Fedora, RHEL), macOS, Android and iOS. (Added in 8.3.0)
 
