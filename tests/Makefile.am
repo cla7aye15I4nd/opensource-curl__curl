@@ -81,6 +81,7 @@ EXTRA_DIST =         \
   util.py            \
   valgrind.pm        \
   valgrind.supp      \
+  windows-native-trust.py \
   $(TESTSCRIPTS)
 
 # we have two variables here to make sure DIST_SUBDIRS does not get 'unit'
