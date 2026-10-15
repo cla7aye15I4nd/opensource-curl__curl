@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+unittest
+TLS
+</keywords>
+</info>
+
+# Client-side
+<client>
+<features>
+unittest
+</features>
+<name>
+TLS accepted early-data progress after backpressure
+</name>
+</client>
+</testcase>
