@@ -1157,6 +1157,9 @@ static CURLcode ssl_cf_send(struct Curl_cfilter *cf,
     result = connssl->ssl_impl->send_plain(cf, data, buf, blen, &nwritten);
     if(!result)
       *pnwritten += nwritten;
+    else if(result == CURLE_AGAIN && *pnwritten)
+      /* The accepted early-data prefix is successful partial progress. */
+      result = CURLE_OK;
   }
 
 out:
