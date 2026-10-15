@@ -374,31 +374,53 @@ static CURLcode ssl_ca_setopts(struct OperationConfig *config, CURL *curl)
   return result;
 }
 
+/* Explicit revocation and pin policies must not be silently ignored. */
+static CURLcode ssl_policy_result(CURLcode result, const char *option)
+{
+  if((result == CURLE_NOT_BUILT_IN) || (result == CURLE_UNKNOWN_OPTION)) {
+    errorf("%s is not supported by libcurl with %s", option, ssl_backend());
+    /* Unsupported options are otherwise considered benign by setopt_bad(). */
+    return CURLE_FAILED_INIT;
+  }
+  return result;
+}
+
 /* only called if libcurl supports TLS */
 static CURLcode ssl_setopts(struct OperationConfig *config, CURL *curl)
 {
   CURLcode result = CURLE_OK;
 
-  if(config->crlfile)
-    MY_SETOPT_STR(curl, CURLOPT_CRLFILE, config->crlfile);
-  if(config->proxy_crlfile)
-    MY_SETOPT_STR(curl, CURLOPT_PROXY_CRLFILE, config->proxy_crlfile);
-  else if(config->crlfile)
-    /* CURLOPT_PROXY_CRLFILE default is crlfile */
-    MY_SETOPT_STR(curl, CURLOPT_PROXY_CRLFILE, config->crlfile);
+  if(config->crlfile) {
+    result = ssl_policy_result(my_setopt_str(curl, CURLOPT_CRLFILE,
+                                            config->crlfile), "--crlfile");
+    if(result)
+      return result;
+  }
+  if(config->proxy_crlfile || (config->crlfile && feature_httpsproxy)) {
+    /* CURLOPT_PROXY_CRLFILE defaults to crlfile when HTTPS proxies work. */
+    result = ssl_policy_result(my_setopt_str(curl, CURLOPT_PROXY_CRLFILE,
+                                            config->proxy_crlfile ?
+                                            config->proxy_crlfile :
+                                            config->crlfile),
+                               "--proxy-crlfile");
+    if(result)
+      return result;
+  }
 
   if(config->pinnedpubkey) {
-    MY_SETOPT_STR(curl, CURLOPT_PINNEDPUBLICKEY, config->pinnedpubkey);
+    result = ssl_policy_result(my_setopt_str(curl, CURLOPT_PINNEDPUBLICKEY,
+                                            config->pinnedpubkey),
+                               "--pinnedpubkey");
     if(result)
-      warnf("ignoring %s, not supported by libcurl with %s",
-            "--pinnedpubkey", ssl_backend());
+      return result;
   }
   if(config->proxy_pinnedpubkey) {
-    MY_SETOPT_STR(curl, CURLOPT_PROXY_PINNEDPUBLICKEY,
-                  config->proxy_pinnedpubkey);
+    result = ssl_policy_result(
+      my_setopt_str(curl, CURLOPT_PROXY_PINNEDPUBLICKEY,
+                    config->proxy_pinnedpubkey),
+                               "--proxy-pinnedpubkey");
     if(result)
-      warnf("ignoring %s, not supported by libcurl with %s",
-            "--proxy-pinnedpubkey", ssl_backend());
+      return result;
   }
 
   if(config->ssl_ec_curves)
