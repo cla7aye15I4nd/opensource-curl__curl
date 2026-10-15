@@ -1033,6 +1033,7 @@ struct UserDefined {
   uint8_t http_follow_mode; /* follow HTTP redirects */
   BIT(connect_only); /* make connection/request, then let application use the
                         socket */
+  BIT(hsts_readonly); /* HSTS file policy belongs to the handle */
   BIT(connect_only_ws); /* special websocket connect-only level */
 #ifndef CURL_DISABLE_SMTP
   BIT(mail_rcpt_allowfails); /* allow RCPT TO command to fail for some
