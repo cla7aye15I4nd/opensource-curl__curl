@@ -147,6 +147,7 @@ my %displaytext;   # text returned to client before callback runs
 #
 my $ctrldelay;     # set if server should throttle ctrl stream
 my $datadelay;     # set if server should throttle data stream
+my $pop3truncate;  # close RETR before the message terminator
 my $retrweirdo;    # set if FTP server should use RETRWEIRDO
 my $retrnosize;    # set if FTP server should use RETRNOSIZE
 my $retrsize;      # set if FTP server should use RETRSIZE
@@ -1847,8 +1848,16 @@ sub RETR_pop3 {
 
     sendcontrol "+OK Mail transfer starts\r\n";
 
+    if($pop3truncate > 0 && @data) {
+        substr($data[-1], -$pop3truncate) = "";
+    }
     for my $d (@data) {
         sendcontrol $d;
+    }
+
+    if($pop3truncate >= 0) {
+        print SFWRITE "DISC\n";
+        return 0;
     }
 
     # end with the magic 3-byte end of mail marker, assumes that the
@@ -2809,6 +2818,7 @@ sub customize {
     my($cmdfile) = @_;
     $ctrldelay = 0;     # default is no throttling of the ctrl stream
     $datadelay = 0;     # default is no throttling of the data stream
+    $pop3truncate = -1;
     $retrweirdo = 0;    # default is no use of RETRWEIRDO
     $retrnosize = 0;    # default is no use of RETRNOSIZE
     $retrsize = 0;      # default is no use of RETRSIZE
@@ -2875,6 +2885,9 @@ sub customize {
             $ctrldelay = 0.005;
             $datadelay = 0.005;
             logmsg "FTPD: send response with 5ms delay between each byte\n";
+        }
+        elsif($_ =~ /POP3TRUNCATE(?: (\d+))?/) {
+            $pop3truncate = defined($1) ? $1 : 0;
         }
         elsif($_ =~ /RETRWEIRDO/) {
             logmsg "FTPD: instructed to use RETRWEIRDO\n";
@@ -3182,6 +3195,9 @@ while(1) {
         # COMMAND
         sysread_or_die(\*SFREAD, \$i, 5);
 
+        if($i =~ /^ACKD/ && $pop3truncate >= 0) {
+            last;
+        }
         if($i !~ /^DATA/) {
             logmsg "MAIN sockfilt said $i";
             if($i =~ /^DISC/) {
