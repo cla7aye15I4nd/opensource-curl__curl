@@ -138,6 +138,9 @@ same way it is when libcurl parses a full URL.
 ## CURLUPART_ZONEID
 
 If the hostname is a numeric IPv6 address, this field can also be set.
+The zone ID must be nonempty and cannot contain URL delimiters or percent
+encodings. Invalid values return *CURLUE_BAD_IPV6* and leave the previous zone
+ID unchanged. Set it to NULL to remove it.
 
 ## CURLUPART_PORT
 
