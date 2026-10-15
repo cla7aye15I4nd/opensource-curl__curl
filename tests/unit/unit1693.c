@@ -47,6 +47,7 @@ struct t1693_ctx {
   size_t nsends;
   size_t send_index;
   size_t recv_index;
+  unsigned int reply_kind;
   size_t written;
   size_t pending;
   unsigned char expected[T1693_WIRE_LEN];
@@ -103,7 +104,16 @@ static CURLcode t1693_recv(struct Curl_easy *data, int8_t sockindex,
 {
   static const unsigned char connack[] = { 0x20, 0x02, 0x00, 0x00 };
   struct t1693_ctx *ctx = data->set.private_data;
-  size_t n = sizeof(connack) - ctx->recv_index;
+  static const unsigned char replies[][4] = {
+    { 0xe0, 0x00, 0x00, 0x00 },
+    { 0xd0, 0x00, 0xe0, 0x00 },
+    { 0x40, 0x02, 0x00, 0x00 },
+    { 0x21, 0x02, 0x00, 0x00 }
+  };
+  const unsigned char *reply = ctx->reply_kind ?
+    replies[ctx->reply_kind - 1] : connack;
+  size_t len_reply = ctx->reply_kind == 1 ? 2 : sizeof(connack);
+  size_t n = len_reply - ctx->recv_index;
   (void)sockindex;
   *pnread = 0;
   abort_unless(ctx->written == T1693_CONNECT_LEN,
@@ -111,7 +121,7 @@ static CURLcode t1693_recv(struct Curl_easy *data, int8_t sockindex,
   abort_unless(n, "unexpected read after CONNACK");
   if(n > len)
     n = len;
-  memcpy(buf, connack + ctx->recv_index, n);
+  memcpy(buf, reply + ctx->recv_index, n);
   ctx->recv_index += n;
   *pnread = n;
   return CURLE_OK;
@@ -127,7 +137,7 @@ static void t1693_meta_dtor(void *p)
 }
 
 static void t1693_run(const struct t1693_send *sends, size_t nsends,
-                     CURLcode expected_result)
+                     CURLcode expected_result, unsigned int reply_kind)
 {
   static const unsigned char post[] = {
     0x30, 0x0d, 0x00, 0x04, 't', 'e', 's', 't',
@@ -143,6 +153,7 @@ static void t1693_run(const struct t1693_send *sends, size_t nsends,
 
   Curl_pollset_init(&ps);
   memset(&ctx, 0, sizeof(ctx));
+  ctx.reply_kind = reply_kind;
   ctx.sends = sends;
   ctx.nsends = nsends;
   memcpy(ctx.expected + T1693_CONNECT_LEN, post, sizeof(post));
@@ -225,10 +236,14 @@ static CURLcode test_unit1693(const char *arg)
   };
 
   abort_unless(!curl_global_init(CURL_GLOBAL_ALL), "global init failed");
-  t1693_run(full, CURL_ARRAYSIZE(full), CURLE_OK);
-  t1693_run(partial, CURL_ARRAYSIZE(partial), CURLE_OK);
-  t1693_run(zero, CURL_ARRAYSIZE(zero), CURLE_OK);
-  t1693_run(send_error, CURL_ARRAYSIZE(send_error), CURLE_SEND_ERROR);
+  t1693_run(full, CURL_ARRAYSIZE(full), CURLE_OK, 0);
+  t1693_run(partial, CURL_ARRAYSIZE(partial), CURLE_OK, 0);
+  t1693_run(zero, CURL_ARRAYSIZE(zero), CURLE_OK, 0);
+  t1693_run(send_error, CURL_ARRAYSIZE(send_error), CURLE_SEND_ERROR, 0);
+  t1693_run(full, 1, CURLE_WEIRD_SERVER_REPLY, 1);
+  t1693_run(full, 1, CURLE_WEIRD_SERVER_REPLY, 2);
+  t1693_run(full, 1, CURLE_WEIRD_SERVER_REPLY, 3);
+  t1693_run(full, 1, CURLE_WEIRD_SERVER_REPLY, 4);
   curl_global_cleanup();
 #endif
 
