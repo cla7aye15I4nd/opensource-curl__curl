@@ -24,6 +24,7 @@
 #include "unitcheck.h"
 #include "urldata.h"
 #include "url.h"
+#include "altsvc.h"
 
 static CURLcode t1620_setup(void)
 {
@@ -98,10 +99,36 @@ static CURLcode test_unit1620(const char *arg)
   result = curl_easy_setopt((CURL *)empty, CURLOPT_NOBODY, 1L);
   fail_unless(result == CURLE_OK, "curl_easy_setopt(CURLOPT_NOBODY) failed");
 
+#if !defined(CURL_DISABLE_HTTP) && !defined(CURL_DISABLE_ALTSVC)
+  result = curl_easy_setopt(empty, CURLOPT_ALTSVC_CTRL,
+                            CURLALTSVC_READONLYFILE | CURLALTSVC_H1);
+  fail_unless(!result, "could not configure Alt-Svc policy");
+#endif
+
   dupe = (struct Curl_easy *)curl_easy_duphandle((CURL *)empty);
   if(!dupe)
     Curl_close(&empty);
   abort_unless(dupe, "curl_easy_duphandle() failed");
+
+#if !defined(CURL_DISABLE_HTTP) && !defined(CURL_DISABLE_ALTSVC)
+  fail_unless(dupe->asi &&
+              dupe->asi->flags == (CURLALTSVC_READONLYFILE | CURLALTSVC_H1),
+              "duplicate lost Alt-Svc read-only or protocol restrictions");
+  {
+    const char *file = "unit1620-readonly.altsvc";
+    FILE *fp = curlx_fopen(file, "wb");
+    abort_unless(fp, "could not create Alt-Svc marker");
+    fputs("k", fp);
+    curlx_fclose(fp);
+    fail_unless(!Curl_altsvc_save(dupe, dupe->asi, file), "Alt-Svc save");
+    fp = curlx_fopen(file, "rb");
+    abort_unless(fp, "could not read Alt-Svc marker");
+    fail_unless(fgetc(fp) == 'k' && fgetc(fp) == EOF,
+                "duplicate rewrote read-only Alt-Svc file");
+    curlx_fclose(fp);
+    unlink(file);
+  }
+#endif
 
   result = Curl_init_transfer(dupe, NULL);
   fail_unless(result == CURLE_OK, "Curl_init_transfer() on duplicate failed");
