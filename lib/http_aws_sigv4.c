@@ -35,6 +35,7 @@
 #include "escape.h"
 #include "curlx/strparse.h"
 #include "slist.h"
+#include "vauth/vauth.h"
 
 #include <time.h>
 
@@ -432,11 +433,17 @@ static CURLcode make_headers(struct Curl_easy *data,
      */
   for(l = data->set.headers; l; l = l->next) {
     char *dupdata;
+    struct Curl_str name;
     const char *ptr;
     const char *sep = strchr(l->data, ':');
     if(!sep)
       sep = strchr(l->data, ';');
     if(!sep || (*sep == ':' && !*(sep + 1)))
+      continue;
+    curlx_str_assign(&name, l->data, (size_t)(sep - l->data));
+    curlx_str_trimblanks(&name);
+    if(curlx_str_casecompare(&name, "Cookie") &&
+       !Curl_auth_allowed_to_host(data))
       continue;
     for(ptr = sep + 1; ISBLANK(*ptr); ++ptr)
       ;

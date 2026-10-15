@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+aws-sigv4
+redirect
+</keywords>
+</info>
+<reply>
+<data nocheck="yes">
+HTTP/1.1 302 Found
+Location: http://xxx:yyy@b.example:9000/%TESTNUMBER0002
+Content-Length: 0
+
+</data>
+<data2>
+HTTP/1.1 200 OK
+Content-Length: 0
+
+</data2>
+</reply>
+<client>
+<server>
+http
+</server>
+<features>
+aws
+SSL
+</features>
+<name>
+SigV4 excludes custom Cookie suppressed on cross-origin redirect
+</name>
+<command option="no-include">
+--noproxy '*' --connect-to a.example:9000:%HOSTIP:%HTTPPORT --connect-to b.example:9000:%HOSTIP:%HTTPPORT --location --aws-sigv4 aws:amz:region:service -H 'X-Amz-Date: 19700101T000000Z' -H 'Cookie: secret=42' http://xxx:yyy@a.example:9000/%TESTNUMBER
+</command>
+</client>
+<verify>
+<protocol crlf="headers">
+GET /3432 HTTP/1.1
+Host: a.example:9000
+Authorization: AWS4-HMAC-SHA256 Credential=xxx/19700101/region/service/aws4_request, SignedHeaders=cookie;host;x-amz-date, Signature=7f998ed50f8d346e033c45d736510d789317c7c617bc12e97f822306719a4d10
+User-Agent: curl/%VERSION
+Accept: */*
+X-Amz-Date: 19700101T000000Z
+Cookie: secret=42
+
+GET /34320002 HTTP/1.1
+Host: b.example:9000
+Authorization: AWS4-HMAC-SHA256 Credential=xxx/19700101/region/service/aws4_request, SignedHeaders=host;x-amz-date, Signature=8bed3521febebcff7b97ea8848a782c5955bda1d5577af95e756c42f97a63207
+User-Agent: curl/%VERSION
+Accept: */*
+X-Amz-Date: 19700101T000000Z
+
+</protocol>
+</verify>
+</testcase>
