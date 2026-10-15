@@ -37,6 +37,7 @@ struct curl_multi_ntfy {
   struct mntfy_chunk *tail;
   uint32_t flags;
   CURLMcode failure;
+  uint64_t generation;
 };
 
 void Curl_mntfy_init(struct Curl_multi *multi);

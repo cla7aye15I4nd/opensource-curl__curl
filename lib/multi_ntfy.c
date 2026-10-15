@@ -38,6 +38,7 @@
 struct mntfy_entry {
   uint32_t mid;
   uint32_t type;
+  uint64_t generation;
 };
 
 #define CURL_MNTFY_CHUNK_SIZE 128
@@ -75,6 +76,7 @@ static bool mntfy_chunk_append(struct mntfy_chunk *chunk,
   e = &chunk->entries[chunk->w_offset++];
   e->mid = data->mid;
   e->type = type;
+  e->generation = data->ntfy_generation;
   return TRUE;
 }
 
@@ -113,7 +115,8 @@ static void mntfy_chunk_dispatch_all(struct Curl_multi *multi,
     e = &chunk->entries[chunk->r_offset];
     data = e->mid ? Curl_multi_get_easy(multi, e->mid) : multi->admin;
     /* only when notification has not been disabled in the meantime */
-    if(data && (multi->ntfy.flags & CURL_MNTFY_TYPE_FLAG(e->type))) {
+    if(data && data->ntfy_generation == e->generation &&
+       (multi->ntfy.flags & CURL_MNTFY_TYPE_FLAG(e->type))) {
       /* this may cause new notifications to be added! */
       CURL_TRC_M(multi->admin, "[NTFY] dispatch %u to xfer %u",
                  e->type, e->mid);
