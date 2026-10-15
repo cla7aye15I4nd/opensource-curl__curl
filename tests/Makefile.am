@@ -185,3 +185,5 @@ all-local: build-certs
 
 distclean:
 	rm -f $(CLEANFILES)
+
+EXTRA_DIST += ldap-stream-regression.py
