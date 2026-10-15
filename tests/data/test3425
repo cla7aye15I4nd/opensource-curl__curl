@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+unittest
+cookies
+</keywords>
+</info>
+
+# Client-side
+<client>
+<features>
+unittest
+</features>
+<name>
+loopback cookie secure contexts through proxies
+</name>
+</client>
+</testcase>
