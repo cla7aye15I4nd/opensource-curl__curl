@@ -2183,6 +2183,22 @@ CURLUcode curl_url_set(CURLU *u, CURLUPart what,
         return url_append_query(u, &enc);
       else if(what == CURLUPART_HOST)
         status = url_sethost(u, &enc, urlencode, flags);
+      else if(what == CURLUPART_ZONEID) {
+        size_t i;
+        /* The zone is embedded inside the serialized IPv6 host. */
+        if(!newp || !*newp)
+          status = CURLUE_BAD_IPV6;
+        else {
+          for(i = 0; newp[i]; i++) {
+            if(invalid_host_char[(unsigned char)newp[i]]) {
+              status = CURLUE_BAD_IPV6;
+              break;
+            }
+          }
+        }
+        if(status)
+          curlx_dyn_free(&enc);
+      }
     }
     if(status)
       return status;
