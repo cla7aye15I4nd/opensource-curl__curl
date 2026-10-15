@@ -330,6 +330,7 @@ static CURLcode ldap_do(struct Curl_easy *data, bool *done)
   LDAPMessage *ldapmsg = NULL;
   LDAPMessage *entryIterator;
   int num = 0;
+  int msgid;
   struct connectdata *conn = data->conn;
   int ldap_proto = LDAP_VERSION3;
   bool ldap_ssl = FALSE;
@@ -506,26 +507,55 @@ static CURLcode ldap_do(struct Curl_easy *data, bool *done)
   }
 
   Curl_pgrsReset(data);
-  rc = ldap_search_s(server, ludp->lud_dn,
-                     ludp->lud_scope,
-                     ludp->lud_filter, ludp->lud_attrs, 0, &ldapmsg);
-
-  if(rc != LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED) {
-    failf(data, "LDAP remote: %s", ldap_err2string(rc));
+  msgid = ldap_search(server, ludp->lud_dn, ludp->lud_scope,
+                      ludp->lud_filter, ludp->lud_attrs, 0);
+  if(msgid == -1) {
     result = CURLE_LDAP_SEARCH_FAILED;
     goto quit;
   }
 
-  num = 0;
-  for(entryIterator = ldap_first_entry(server, ldapmsg);
-      entryIterator;
-      entryIterator = ldap_next_entry(server, entryIterator), num++) {
+  for(;;) {
+    int message;
+    timediff_t left = Curl_timeleft_ms(data);
 #ifdef USE_WIN32_LDAP
+    LDAP_TIMEVAL waittime;
     TCHAR *attribute;
 #else
+    struct timeval waittime;
     char *attribute;
 #endif
-
+    if(left < 0) {
+      result = CURLE_OPERATION_TIMEDOUT;
+      goto quit;
+    }
+    result = Curl_pgrsUpdate(data);
+    if(result)
+      goto quit;
+    waittime.tv_sec = 0;
+    waittime.tv_usec = (long)((left && left < 100) ? left * 1000 : 100000);
+    message = (int)ldap_result(server, msgid, LDAP_MSG_ONE,
+                               &waittime, &ldapmsg);
+    if(message == -1) {
+      result = CURLE_LDAP_SEARCH_FAILED;
+      goto quit;
+    }
+    if(!message)
+      continue;
+    if(message == LDAP_RES_SEARCH_RESULT) {
+      rc = ldap_result2error(server, ldapmsg, 0);
+      if(rc != LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED) {
+        failf(data, "LDAP remote: %s", ldap_err2string(rc));
+        result = CURLE_LDAP_SEARCH_FAILED;
+      }
+      break;
+    }
+    entryIterator = ldap_first_entry(server, ldapmsg);
+    if(!entryIterator) {
+      ldap_msgfree(ldapmsg);
+      ldapmsg = NULL;
+      continue;
+    }
+    num++;
     /* Get the DN and write it to the client */
     {
       char *name = NULL;
@@ -605,6 +635,8 @@ static CURLcode ldap_do(struct Curl_easy *data, bool *done)
       ber_free(ber, 0);
       ber = NULL;
     }
+    ldap_msgfree(ldapmsg);
+    ldapmsg = NULL;
   }
 
 quit:
