@@ -27,8 +27,6 @@
 #include "tool_writeout_json.h"
 #include "tool_writeout.h"
 
-#define MAX_JSON_STRING 100000
-
 /* provide the given string in dynbuf as a quoted json string, but without the
    outer quotes. The buffer is not inited by this function.
 
@@ -82,16 +80,30 @@ int jsonquoted(const char *in, size_t len, struct dynbuf *out, bool lowercase)
 
 void jsonWriteString(FILE *stream, const char *in, bool lowercase)
 {
-  struct dynbuf out;
-  curlx_dyn_init(&out, MAX_JSON_STRING);
-
-  if(!jsonquoted(in, strlen(in), &out, lowercase)) {
-    fputc('\"', stream);
-    if(curlx_dyn_len(&out))
-      fputs(curlx_dyn_ptr(&out), stream);
-    fputc('\"', stream);
+  const unsigned char *p = (const unsigned char *)in;
+  fputc('"', stream);
+  for(; *p; p++) {
+    switch(*p) {
+    case '\\': fputs("\\\\", stream); break;
+    case '"': fputs("\\\"", stream); break;
+    case '\b': fputs("\\b", stream); break;
+    case '\f': fputs("\\f", stream); break;
+    case '\n': fputs("\\n", stream); break;
+    case '\r': fputs("\\r", stream); break;
+    case '\t': fputs("\\t", stream); break;
+    default:
+      if(*p < 32)
+        curl_mfprintf(stream, "\\u%04x", *p);
+      else {
+        unsigned char c = *p;
+        if(lowercase && c >= 'A' && c <= 'Z')
+          c |= ('a' - 'A');
+        fputc(c, stream);
+      }
+      break;
+    }
   }
-  curlx_dyn_free(&out);
+  fputc('"', stream);
 }
 
 void ourWriteOutJSON(FILE *stream, const struct writeoutvar mappings[],
