@@ -464,6 +464,7 @@ static CURLMcode multi_xfers_add(struct Curl_multi *multi,
                 Curl_uint32_tbl_count(&multi->xfers));
     return CURLM_OUT_OF_MEMORY;
   }
+  data->ntfy_generation = ++multi->ntfy.generation;
   return CURLM_OK;
 }
 

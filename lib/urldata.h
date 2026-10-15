@@ -1169,6 +1169,7 @@ struct Curl_easy {
    * libcurl application or implicitly during `curl_easy_perform()`,
    * a unique identifier inside this one multi instance. */
   uint32_t mid;
+  uint64_t ntfy_generation; /* notification identity for this multi add */
   CURLMstate mstate;  /* the handle's state */
   CURLcode result;   /* previous result */
 
