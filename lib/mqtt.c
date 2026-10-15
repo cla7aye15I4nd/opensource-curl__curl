@@ -42,7 +42,7 @@
 /* first byte is command.
    second byte is for flags. */
 #define MQTT_MSG_CONNECT    0x10
-/* #define MQTT_MSG_CONNACK    0x20 */
+#define MQTT_MSG_CONNACK    0x20
 #define MQTT_MSG_PUBLISH    0x30
 #define MQTT_MSG_SUBSCRIBE  0x82
 #define MQTT_MSG_SUBACK     0x90
@@ -897,6 +897,13 @@ static CURLcode mqtt_doing(struct Curl_easy *data, bool *done)
       break;
     }
     Curl_debug(data, CURLINFO_HEADER_IN, (const char *)&mq->firstbyte, 1);
+    if(mqtt->nextstate == MQTT_CONNACK &&
+       mq->firstbyte != MQTT_MSG_CONNACK) {
+      failf(data, "Expected CONNACK, got packet type 0x%02x", mq->firstbyte);
+      result = CURLE_WEIRD_SERVER_REPLY;
+      break;
+    }
+
 
     /* we received something */
     mq->lastTime = *Curl_pgrs_now(data);
@@ -941,12 +948,6 @@ static CURLcode mqtt_doing(struct Curl_easy *data, bool *done)
         result = CURLE_WEIRD_SERVER_REPLY;
         break;
       }
-    }
-    if(mq->firstbyte == MQTT_MSG_DISCONNECT &&
-       mqtt->nextstate == MQTT_CONNACK) {
-      failf(data, "DISCONNECT received before CONNACK");
-      result = CURLE_WEIRD_SERVER_REPLY;
-      break;
     }
     if(mq->remaining_length) {
       mqstate(data, mqtt->nextstate, MQTT_NOSTATE);
