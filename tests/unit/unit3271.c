@@ -170,6 +170,33 @@ static CURLcode test_unit3271(const char *arg)
     dnsc_id2key(&key, &id);
     dns = Curl_hash_pick(&multi->dnscache.entries, key.data, key.len);
 
+    /* A late DNS response must not replace a permanent resolve pin. */
+    {
+      struct Curl_addrinfo *resolved = NULL;
+      struct Curl_dns_entry *late;
+      struct Curl_dns_entry *cached = NULL;
+      abort_unless(!Curl_str2addr("127.0.0.3", tests[i].port, &resolved),
+                   "could not create late resolver address");
+      late = Curl_dnsc_mk_addr(easy, CURL_DNSQ_A, &resolved, peer);
+      abort_unless(late, "could not create late resolver result");
+      fail_unless(!Curl_dnscache_add(easy, late), "late resolver cache add");
+      fail_unless(!Curl_dnscache_get(easy, CURL_DNSQ_A, peer, &cached),
+                  "cache fetch after late resolver result");
+      fail_unless(cached == dns && cached->permanent,
+                  "late resolver answer replaced the permanent pin");
+      fail_unless(late->refcount == 1,
+                  "skipped resolver result leaked a cache reference");
+      Curl_dns_entry_unlink(easy, &cached);
+      Curl_dns_entry_unlink(easy, &late);
+      fail_unless(!Curl_dnscache_add_negative(easy, CURL_DNSQ_A, peer),
+                  "late failed DNS lookup cache add");
+      fail_unless(!Curl_dnscache_get(easy, CURL_DNSQ_A, peer, &cached),
+                  "cache fetch after late failed DNS lookup");
+      fail_unless(cached == dns && cached->permanent,
+                  "late failed lookup replaced the permanent pin");
+      Curl_dns_entry_unlink(easy, &cached);
+      dns = Curl_hash_pick(&multi->dnscache.entries, key.data, key.len);
+    }
     addr = dns ? dns->addr : NULL;
 
     for(j = 0; j < addressnum; ++j) {

@@ -725,6 +725,17 @@ static struct Curl_dns_entry *dnsc_add_peer_addr(
   return dns;
 }
 
+/* Called with the cache locked. Explicit CURLOPT_RESOLVE updates use a
+ * separate path and are allowed to replace permanent entries. */
+static bool dnsc_has_permanent(struct Curl_dnscache *dnscache,
+                               struct dnsc_key *key, struct dnsc_id *id)
+{
+  struct Curl_dns_entry *existing =
+    Curl_hash_pick(&dnscache->entries, key->data, key->len);
+  return existing && existing->permanent &&
+    dnsc_id_matches_entry(id, existing);
+}
+
 CURLcode Curl_dnscache_add(struct Curl_easy *data,
                            struct Curl_dns_entry *entry)
 {
@@ -744,6 +755,11 @@ CURLcode Curl_dnscache_add(struct Curl_easy *data,
 
   /* Store the resolved data in our DNS cache and up ref count */
   dnscache_lock(data, dnscache);
+  if(!entry->permanent && dnsc_has_permanent(dnscache, &key, &id)) {
+    /* A CURLOPT_RESOLVE pin may have arrived while DNS was pending. */
+    dnscache_unlock(data, dnscache);
+    return CURLE_OK;
+  }
   if(!dnsc_add_entry(data, dnscache, &key, entry)) {
     dnscache_unlock(data, dnscache);
     return CURLE_OUT_OF_MEMORY;
@@ -772,8 +788,15 @@ CURLcode Curl_dnscache_add_negative(struct Curl_easy *data,
   dnscache_lock(data, dnscache);
 
   if(dns_queries & CURL_DNSQ_ADDR) {
-    /* put this new host in the cache */
+    struct dnsc_key key;
+    /* A failed pending lookup must not replace a permanent resolve pin. */
     dnsc_peer2id(&id, CURL_DNST_ADDR, peer);
+    dnsc_id2key(&key, &id);
+    if(dnsc_has_permanent(dnscache, &key, &id)) {
+      dnscache_unlock(data, dnscache);
+      return CURLE_OK;
+    }
+    /* put this new host in the cache */
     dns = dnsc_add_peer_addr(data, dnscache, dns_queries, NULL, &id, FALSE);
     if(!dns)
       result = CURLE_OUT_OF_MEMORY;
