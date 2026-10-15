@@ -1972,7 +1972,14 @@ static void ossl_close(struct Curl_cfilter *cf, struct Curl_easy *data)
     octx->x509_store_setup = FALSE;
   }
 #ifdef USE_WIN32_CRYPTO
+#if defined(__clang__) && __clang_major__ >= 16
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-strict"
+#endif
   sk_X509_pop_free(octx->native_intermediates, X509_free);
+#if defined(__clang__) && __clang_major__ >= 16
+#pragma clang diagnostic pop
+#endif
   octx->native_intermediates = NULL;
 #endif
   if(octx->bio_method) {
@@ -3018,7 +3025,14 @@ static CURLcode ossl_windows_load_anchors(struct Curl_cfilter *cf,
   bool ca_added = FALSE;
   CURLcode result;
 
+#if defined(__clang__) && __clang_major__ >= 16
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-strict"
+#endif
   sk_X509_pop_free(octx->native_intermediates, X509_free);
+#if defined(__clang__) && __clang_major__ >= 16
+#pragma clang diagnostic pop
+#endif
   octx->native_intermediates = sk_X509_new_null();
   if(!octx->native_intermediates)
     return CURLE_OUT_OF_MEMORY;

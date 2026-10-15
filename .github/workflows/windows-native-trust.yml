@@ -1,0 +1,73 @@
+# Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
+#
+# SPDX-License-Identifier: curl
+
+name: 'Windows native trust'
+
+'on':
+  pull_request:
+    paths:
+      - '.github/workflows/windows-native-trust.yml'
+      - 'tests/windows-native-trust.py'
+      - 'lib/vtls/openssl.c'
+  push:
+    branches:
+      - master
+      - 'curl-*'
+      - '*/ci'
+    paths:
+      - '.github/workflows/windows-native-trust.yml'
+      - 'tests/windows-native-trust.py'
+      - 'lib/vtls/openssl.c'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  openssl:
+    name: 'OpenSSL native ROOT with loopback TLS'
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
+        with:
+          msystem: ucrt64
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-openssl
+            mingw-w64-ucrt-x86_64-python
+
+      - name: 'configure'
+        run: |
+          cmake -S . -B bld-native-trust -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_UNITY_BUILD=ON -DCMAKE_UNITY_BUILD_BATCH_SIZE=30 \
+            -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF \
+            -DCURL_WERROR=ON \
+            -DCURL_USE_OPENSSL=ON -DCURL_USE_SCHANNEL=OFF \
+            -DCURL_USE_LIBPSL=OFF -DCURL_USE_LIBSSH2=OFF \
+            -DCURL_CA_BUNDLE=none -DCURL_CA_PATH=none
+
+      - name: 'build'
+        run: cmake --build bld-native-trust --target curl --parallel 4
+
+      - name: 'verify native store policy'
+        # This is a disposable hosted runner. The test removes only the fresh
+        # certificate contexts it inserted, including after assertion failures.
+        run: >-
+          python tests/windows-native-trust.py
+          --curl bld-native-trust/src/curl.exe
+          --allow-store-changes
