@@ -1237,6 +1237,7 @@ static CURLcode setopt_long_misc(struct Curl_easy *data, CURLoption option,
     else
       /* detach from shared HSTS cache without freeing it */
       data->hsts = NULL;
+    s->hsts_readonly = !!(arg & CURLHSTS_READONLYFILE);
     break;
 #endif
 #ifndef CURL_DISABLE_ALTSVC

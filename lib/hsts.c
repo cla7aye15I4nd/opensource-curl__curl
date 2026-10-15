@@ -383,7 +383,7 @@ CURLcode Curl_hsts_save(struct Curl_easy *data, struct hsts *h,
   if(!file && h->filename)
     file = h->filename;
 
-  if((h->flags & CURLHSTS_READONLYFILE) || !file || !file[0])
+  if(data->set.hsts_readonly || !file || !file[0])
     /* marked as read-only, no file or zero length filename */
     goto skipsave;
 

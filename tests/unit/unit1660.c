@@ -27,6 +27,17 @@
 #include "urldata.h"
 #include "hsts.h"
 
+static CURLSTScode readonly_write(CURL *easy, struct curl_hstsentry *entry,
+                                  struct curl_index *index, void *userdata)
+{
+  unsigned int *calls = userdata;
+  (void)easy;
+  (void)entry;
+  (void)index;
+  ++*calls;
+  return CURLSTS_OK;
+}
+
 static void showsts(struct stsentry *e, const char *chost)
 {
   if(!e)
@@ -106,8 +117,12 @@ static CURLcode test_unit1660(const char *arg)
   struct hsts *h = Curl_hsts_init();
   int i;
   const char *chost;
-  CURL *easy;
+  struct Curl_easy *easy;
+  struct Curl_easy *clone;
+  struct Curl_easy *writer;
+  CURLSH *share;
   char savename[256];
+  unsigned int write_calls = 0;
 
   abort_unless(h, "Curl_hsts_init()");
 
@@ -118,6 +133,70 @@ static CURLcode test_unit1660(const char *arg)
     curl_global_cleanup();
     abort_unless(easy, "curl_easy_init()");
   }
+
+  result = curl_easy_setopt(easy, CURLOPT_HSTS_CTRL,
+                            CURLHSTS_ENABLE | CURLHSTS_READONLYFILE);
+  fail_unless(!result, "could not set read-only HSTS");
+  fail_unless(easy->hsts &&
+              easy->set.hsts_readonly,
+              "HSTS cache did not retain read-only policy");
+  clone = curl_easy_duphandle(easy);
+  abort_unless(clone, "could not duplicate HSTS handle");
+  fail_unless(clone->hsts &&
+              clone->set.hsts_readonly,
+              "duplicate lost read-only HSTS policy");
+  share = curl_share_init();
+  writer = curl_easy_init();
+  abort_unless(share && writer, "HSTS share setup");
+  fail_unless(!curl_share_setopt(share, CURLSHOPT_SHARE, CURL_LOCK_DATA_HSTS),
+              "enable HSTS sharing");
+  fail_unless(!curl_easy_setopt(clone, CURLOPT_SHARE, share), "attach clone");
+  fail_unless(!curl_easy_setopt(writer, CURLOPT_SHARE, share),
+              "attach writer");
+  fail_unless(!curl_easy_setopt(writer, CURLOPT_HSTS_CTRL, CURLHSTS_ENABLE),
+              "configure writable shared HSTS handle");
+  fail_unless(clone->set.hsts_readonly && !writer->set.hsts_readonly,
+              "shared cache replaced per-handle file policy");
+  {
+    FILE *fp;
+    curl_msnprintf(savename, sizeof(savename), "%s.readonly", arg);
+    fp = curlx_fopen(savename, "wb");
+    abort_unless(fp, "could not create HSTS marker");
+    fputs("k", fp);
+    curlx_fclose(fp);
+    fail_unless(!Curl_hsts_parse(clone->hsts, "readonly.example",
+                                 "max-age=31536000"), "learn HSTS policy");
+    curl_easy_setopt(clone, CURLOPT_HSTSWRITEFUNCTION, readonly_write);
+    curl_easy_setopt(clone, CURLOPT_HSTSWRITEDATA, &write_calls);
+    fail_unless(!Curl_hsts_save(clone, clone->hsts, savename), "HSTS save");
+    fail_unless(write_calls, "read-only file suppressed HSTS write callback");
+    fp = curlx_fopen(savename, "rb");
+    abort_unless(fp, "could not read HSTS marker");
+    fail_unless(fgetc(fp) == 'k' && fgetc(fp) == EOF,
+                "HSTS save rewrote a read-only cache");
+    curlx_fclose(fp);
+    fail_unless(!Curl_hsts_save(writer, writer->hsts, savename),
+                "writable shared HSTS save");
+    fp = curlx_fopen(savename, "rb");
+    abort_unless(fp, "could not read writable HSTS cache");
+    fail_unless(fgetc(fp) == '#', "writable shared handle did not save");
+    curlx_fclose(fp);
+    fail_unless(!curl_easy_setopt(writer, CURLOPT_HSTS_CTRL,
+                                  CURLHSTS_ENABLE | CURLHSTS_READONLYFILE),
+                "set read-only policy after sharing");
+    fail_unless(writer->set.hsts_readonly,
+                "late read-only policy was not retained");
+    curl_easy_reset(writer);
+    fail_unless(!writer->set.hsts_readonly && clone->set.hsts_readonly,
+                "reset did not restore only this handle's default policy");
+    unlink(savename);
+  }
+  curl_easy_cleanup(writer);
+  curl_easy_cleanup(clone);
+  curl_share_cleanup(share);
+  result = curl_easy_setopt(easy, CURLOPT_HSTS_CTRL, CURLHSTS_ENABLE);
+  fail_unless(!result && !easy->set.hsts_readonly,
+              "could not restore writable HSTS policy");
 
   Curl_hsts_loadfile(easy, h, arg);
 
