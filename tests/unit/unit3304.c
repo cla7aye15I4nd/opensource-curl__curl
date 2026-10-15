@@ -97,6 +97,18 @@ static CURLcode test_unit3304(const char *arg)
   curlx_safefree(key1);
   curlx_safefree(key2);
 
+  /* Effective native trust can differ even with identical ssl_options. */
+  fail_unless(!Curl_ssl_peer_key_make(&peer, &ssl, "test", &key1),
+              "peer key build failed");
+  ssl.native_ca_store = TRUE;
+  fail_unless(!Curl_ssl_peer_key_make(&peer, &ssl, "test", &key2),
+              "peer key build failed");
+  fail_unless(key1 && key2 && strcmp(key1, key2),
+              "native CA policy must affect the peer key");
+  curlx_safefree(key1);
+  curlx_safefree(key2);
+  ssl.native_ca_store = FALSE;
+
   /* A delimiter in a CA path must not create a second trust field. */
   ssl.CAfile = cafile_fields;
   ssl.CApath = NULL;

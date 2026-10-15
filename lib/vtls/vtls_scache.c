@@ -267,6 +267,11 @@ static CURLcode ssl_peer_key_build(struct ssl_filter_config *ssl,
     if(result)
       goto out;
   }
+  /* Native trust may be enabled implicitly, outside ssl_options. */
+  result = curlx_dyn_addf(&buf, ":NATIVE-CA-%d",
+                          ssl->native_ca_store ? 1 : 0);
+  if(result)
+    goto out;
   if(ssl->cipher_list) {
     result = cf_ssl_peer_key_add_string(&buf, "CIPHER", ssl->cipher_list);
     if(result)
