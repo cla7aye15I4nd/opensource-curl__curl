@@ -13,6 +13,7 @@ certificates are added to CurrentUser CA/ROOT, then removed in finally blocks.
 
 import argparse
 import ctypes
+import faulthandler
 import os
 import ssl
 import subprocess
@@ -163,6 +164,7 @@ def tls_server(directory, certificate):
 
 def check(curl, directory, port, label, expected, ca="unrelated.pem",
           native=False, host="localhost"):
+    print(f"RUN {label}", flush=True)
     env = os.environ.copy()
     for key in ("CURL_CA_BUNDLE", "SSL_CERT_FILE", "SSL_CERT_DIR"):
         env.pop(key, None)
@@ -186,6 +188,7 @@ def check(curl, directory, port, label, expected, ca="unrelated.pem",
 
 
 def main():
+    faulthandler.dump_traceback_later(120, repeat=True)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--curl", required=True)
     parser.add_argument("--openssl", default="openssl")
@@ -205,7 +208,9 @@ def main():
     print(version, flush=True)
     with tempfile.TemporaryDirectory(prefix="curl-native-trust-") as temporary:
         directory = Path(temporary)
+        print("RUN generating certificates", flush=True)
         make_certificates(directory, args.openssl)
+        print("RUN starting loopback TLS servers", flush=True)
         with tls_server(directory, "chain.pem") as full, \
                 tls_server(directory, "server.pem") as leaf:
             # Portable controls establish the fixture's signatures, trust,
@@ -219,7 +224,9 @@ def main():
                   ca="root.pem", host="127.0.0.1")
             if args.check_fixtures:
                 return
+            print("RUN opening Windows CA and ROOT stores", flush=True)
             with WindowsStore("CA") as intermediates, WindowsStore("ROOT") as roots:
+                print("RUN adding Windows CA intermediate", flush=True)
                 intermediates.add(directory / "intermediate.pem")
                 check(curl, directory, full, "CA intermediate is not an anchor", 60,
                       native=True)

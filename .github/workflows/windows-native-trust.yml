@@ -65,6 +65,7 @@ jobs:
         run: cmake --build bld-native-trust --target curl --parallel 4
 
       - name: 'verify native store policy'
+        timeout-minutes: 8
         # This is a disposable hosted runner. The test removes only the fresh
         # certificate contexts it inserted, including after assertion failures.
         run: >-
