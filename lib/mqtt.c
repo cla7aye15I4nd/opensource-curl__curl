@@ -942,6 +942,12 @@ static CURLcode mqtt_doing(struct Curl_easy *data, bool *done)
         break;
       }
     }
+    if(mq->firstbyte == MQTT_MSG_DISCONNECT &&
+       mqtt->nextstate == MQTT_CONNACK) {
+      failf(data, "DISCONNECT received before CONNACK");
+      result = CURLE_WEIRD_SERVER_REPLY;
+      break;
+    }
     if(mq->remaining_length) {
       mqstate(data, mqtt->nextstate, MQTT_NOSTATE);
       break;
