@@ -28,12 +28,15 @@ from pathlib import Path
 class WindowsStore:
     """Own only the certificate contexts inserted by this test invocation."""
 
-    def __init__(self, name):
+    def __init__(self, name, machine=False):
         self.api = ctypes.WinDLL("crypt32", use_last_error=True)
         pointer = ctypes.c_void_p
         dword = ctypes.c_uint32
         self.api.CertOpenSystemStoreW.argtypes = [pointer, ctypes.c_wchar_p]
         self.api.CertOpenSystemStoreW.restype = pointer
+        self.api.CertOpenStore.argtypes = [pointer, dword, pointer, dword,
+                                           ctypes.c_wchar_p]
+        self.api.CertOpenStore.restype = pointer
         self.api.CertAddEncodedCertificateToStore.argtypes = [
             pointer, dword, pointer, dword, dword, ctypes.POINTER(pointer)]
         self.api.CertAddEncodedCertificateToStore.restype = ctypes.c_int
@@ -41,9 +44,15 @@ class WindowsStore:
         self.api.CertDeleteCertificateFromStore.restype = ctypes.c_int
         self.api.CertCloseStore.argtypes = [pointer, dword]
         self.api.CertCloseStore.restype = ctypes.c_int
-        # CertOpenSystemStore opens the current user's logical system store,
-        # matching the API used by curl's OpenSSL native-CA importer.
-        self.handle = self.api.CertOpenSystemStoreW(None, name)
+        # CurrentUser ROOT prompts for confirmation when a root is added,
+        # which cannot be answered on a hosted runner. LocalMachine ROOT is
+        # inherited by CurrentUser ROOT and is visible to curl's importer.
+        if machine:
+            # CERT_STORE_PROV_SYSTEM_W=10, CERT_SYSTEM_STORE_LOCAL_MACHINE=0x20000
+            self.handle = self.api.CertOpenStore(pointer(10), 0, None,
+                                                 0x00020000, name)
+        else:
+            self.handle = self.api.CertOpenSystemStoreW(None, name)
         if not self.handle:
             raise ctypes.WinError(ctypes.get_last_error())
         self.contexts = []
@@ -225,11 +234,13 @@ def main():
             if args.check_fixtures:
                 return
             print("RUN opening Windows CA and ROOT stores", flush=True)
-            with WindowsStore("CA") as intermediates, WindowsStore("ROOT") as roots:
+            with WindowsStore("CA") as intermediates, \
+                    WindowsStore("ROOT", machine=True) as roots:
                 print("RUN adding Windows CA intermediate", flush=True)
                 intermediates.add(directory / "intermediate.pem")
                 check(curl, directory, full, "CA intermediate is not an anchor", 60,
                       native=True)
+                print("RUN adding Windows LocalMachine ROOT", flush=True)
                 roots.add(directory / "root.pem")
                 check(curl, directory, full, "native ROOT and server chain", 0,
                       native=True)
