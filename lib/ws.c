@@ -1750,7 +1750,7 @@ CURLcode curl_ws_recv(CURL *curl, void *buffer,
       /* receive more when our buffer is empty */
       if(Curl_bufq_is_empty(&ws->recvbuf)) {
         size_t n;
-        result = Curl_bufq_slurp(&ws->recvbuf, nw_in_recv, data, &n);
+        result = Curl_bufq_sipn(&ws->recvbuf, 0, nw_in_recv, data, &n);
         if(result)
           goto out;
         else if(n == 0) {
