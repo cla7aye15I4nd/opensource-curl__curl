@@ -1405,14 +1405,27 @@ static int cookie_sort_ct(const void *p1, const void *p2)
   return (c2->creationtime > c1->creationtime) ? 1 : -1;
 }
 
+static bool cookie_loopback_host(const char *host, size_t len)
+{
+  return ((len == 9) && (curl_strnequal("localhost", host, 9) ||
+                        !memcmp(host, "127.0.0.1", 9))) ||
+    ((len == 3) && !memcmp(host, "::1", 3));
+}
+
 bool Curl_secure_context(struct Curl_easy *data, const char *host,
                          const size_t hlen)
 {
-  return Curl_xfer_is_secure(data) ||
-    (!data->info.used_proxy &&
-     (((hlen == 9) && (curl_strnequal("localhost", host, 9))) ||
-      ((hlen == 9) && !memcmp(host, "127.0.0.1", 9)) ||
-      ((hlen == 3) && !memcmp(host, "::1", 3))));
+  const struct Curl_peer *origin = data->state.origin;
+  const struct Curl_peer *via = data->conn ? data->conn->via_peer : NULL;
+
+  if(Curl_xfer_is_secure(data))
+    return TRUE;
+
+  /* Host and connect-to overrides cannot grant the loopback exception. */
+  return !data->info.used_proxy && origin &&
+    cookie_loopback_host(origin->hostname, strlen(origin->hostname)) &&
+    (!via || cookie_loopback_host(via->hostname, strlen(via->hostname))) &&
+    cookie_loopback_host(host, hlen);
 }
 
 /*
