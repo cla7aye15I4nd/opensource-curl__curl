@@ -1726,6 +1726,11 @@ static CURLcode smtp_done(struct Curl_easy *data, CURLcode status,
 
   (void)premature;
 
+#ifndef CURL_DISABLE_MIME
+  /* The message is done borrowing the application header list. */
+  if(data->set.mimepostp)
+    curl_mime_headers(data->set.mimepostp, NULL, 0);
+#endif
   if(!smtpc)
     return CURLE_FAILED_INIT;
   if(!smtp)

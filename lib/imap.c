@@ -2007,6 +2007,11 @@ static CURLcode imap_done(struct Curl_easy *data, CURLcode status,
   struct imap_conn *imapc = Curl_conn_meta_get(conn, CURL_META_IMAP_CONN);
   struct IMAP *imap = Curl_meta_get(data, CURL_META_IMAP_EASY);
 
+#ifndef CURL_DISABLE_MIME
+  /* The message is done borrowing the application header list. */
+  if(data->set.mimepostp)
+    curl_mime_headers(data->set.mimepostp, NULL, 0);
+#endif
   if(!imapc)
     return CURLE_FAILED_INIT;
   if(!imap)
