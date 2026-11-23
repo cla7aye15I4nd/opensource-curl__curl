@@ -1389,7 +1389,9 @@ static int cookie_sort(const void *p1, const void *p2)
     return (l2 > l1) ? 1 : -1;
 
   /* 4 - compare cookie creation time */
-  return (c2->creationtime > c1->creationtime) ? 1 : -1;
+  if(c1->creationtime != c2->creationtime)
+    return (c2->creationtime > c1->creationtime) ? 1 : -1;
+  return 0;
 }
 
 /*
@@ -1402,7 +1404,9 @@ static int cookie_sort_ct(const void *p1, const void *p2)
   const struct Cookie *c1 = *(const struct Cookie * const *)p1;
   const struct Cookie *c2 = *(const struct Cookie * const *)p2;
 
-  return (c2->creationtime > c1->creationtime) ? 1 : -1;
+  if(c1->creationtime != c2->creationtime)
+    return (c2->creationtime > c1->creationtime) ? 1 : -1;
+  return 0;
 }
 
 bool Curl_secure_context(struct Curl_easy *data, const char *host,
