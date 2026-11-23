@@ -53,6 +53,7 @@
 #include "curl_range.h"
 #include "strcase.h"
 #include "vtls/vtls.h"
+#include "vauth/vauth.h"
 #include "cfilters.h"
 #include "cf-socket.h"
 #include "connect.h"
@@ -2930,7 +2931,7 @@ static CURLcode ftp_state_user_resp(struct Curl_easy *data,
     result = ftp_state_loggedin(data, ftpc);
   }
   else if(ftpcode == 332) {
-    const char *account = CURL_EASY_STR(data, STRING_FTP_ACCOUNT);
+    const char *account = ftpc->account;
     if(!account) {
       failf(data, "ACCT requested but none available");
       result = CURLE_LOGIN_DENIED;
@@ -2951,7 +2952,7 @@ static CURLcode ftp_state_user_resp(struct Curl_easy *data,
     530 User ... access denied
     (the server denies to log the specified user) */
 
-    const char *alt = CURL_EASY_STR(data, STRING_FTP_ALTERNATIVE_TO_USER);
+    const char *alt = ftpc->alternative_to_user;
     if(alt && !ftpc->ftp_trying_alternative) {
       /* Ok, USER failed. Let's try the supplied command. */
       if(ftp_has_ctrl(alt)) {
@@ -4259,24 +4260,30 @@ static void cf_ftp_ctx_free(struct cf_ftp_ctx *ctx,
   }
 }
 
+static const char *ftp_login_option(struct Curl_easy *data, enum dupstring opt)
+{
+  return Curl_auth_allowed_to_host(data) ? CURL_EASY_STR(data, opt) : NULL;
+}
+
 static struct cf_ftp_ctx *cf_ftp_ctx_create(struct Curl_easy *data,
                                             struct connectdata *conn)
 {
+  const char *account = ftp_login_option(data, STRING_FTP_ACCOUNT);
+  const char *alt = ftp_login_option(data, STRING_FTP_ALTERNATIVE_TO_USER);
   struct cf_ftp_ctx *ftpc = curlx_calloc(1, sizeof(*ftpc));
   if(!ftpc)
     return NULL;
 
   /* clone connection related data that is FTP specific */
-  if(CURL_EASY_STR(data, STRING_FTP_ACCOUNT)) {
-    ftpc->account = curlx_strdup(CURL_EASY_STR(data, STRING_FTP_ACCOUNT));
+  if(account) {
+    ftpc->account = curlx_strdup(account);
     if(!ftpc->account) {
       cf_ftp_ctx_free(ftpc, data);
       return NULL;
     }
   }
-  if(CURL_EASY_STR(data, STRING_FTP_ALTERNATIVE_TO_USER)) {
-    ftpc->alternative_to_user =
-      curlx_strdup(CURL_EASY_STR(data, STRING_FTP_ALTERNATIVE_TO_USER));
+  if(alt) {
+    ftpc->alternative_to_user = curlx_strdup(alt);
     if(!ftpc->alternative_to_user) {
       cf_ftp_ctx_free(ftpc, data);
       return NULL;
@@ -4722,9 +4729,9 @@ bool Curl_ftp_conn_matches(struct Curl_easy *data,
 
   /* match ACCOUNT, ALTERNATIVE-TO-USER and CCC options */
   if((data->set.ftp_ccc != cftpc->ccc) ||
-     Curl_timestrcmp(CURL_EASY_STR(data, STRING_FTP_ACCOUNT),
+     Curl_timestrcmp(ftp_login_option(data, STRING_FTP_ACCOUNT),
                      cftpc->account) ||
-     Curl_timestrcmp(CURL_EASY_STR(data, STRING_FTP_ALTERNATIVE_TO_USER),
+     Curl_timestrcmp(ftp_login_option(data, STRING_FTP_ALTERNATIVE_TO_USER),
                      cftpc->alternative_to_user))
     return FALSE;
 
