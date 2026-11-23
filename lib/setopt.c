@@ -1399,11 +1399,13 @@ static CURLcode setopt_mimepost(struct Curl_easy *data, curl_mime *mimep)
   if(!result) {
     s->method = HTTPREQ_POST_MIME;
     s->opt_no_body = FALSE; /* this is implied */
+#ifndef CURL_DISABLE_HTTP
 #ifndef CURL_DISABLE_FORM_API
     Curl_mime_cleanpart(data->state.formp);
     curlx_safefree(data->state.formp);
 #endif
     data->state.mimepost = NULL;
+#endif
   }
   return result;
 }
