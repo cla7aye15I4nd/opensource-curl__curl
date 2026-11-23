@@ -302,6 +302,19 @@ static int cb_ngtcp2_handshake_completed(ngtcp2_conn *tconn, void *user_data)
   ctx->tls_handshake_complete = TRUE;
   Curl_vquic_report_handshake(&ctx->tls, cf, data);
 
+#ifdef USE_OPENSSL
+  {
+    const unsigned char *alpn = NULL;
+    unsigned int alpnlen = 0;
+    SSL_get0_alpn_selected(ctx->tls.ossl.ssl, &alpn, &alpnlen);
+    if(!alpnlen) {
+      failf(data, "No application protocol negotiated for HTTP/3");
+      ctx->tls_vrfy_result = CURLE_SSL_CONNECT_ERROR;
+      return NGTCP2_ERR_CALLBACK_FAILURE;
+    }
+  }
+#endif
+
   ctx->tls_vrfy_result = Curl_vquic_tls_verify_peer(&ctx->tls, cf,
                                                     data, &ctx->ssl_peer);
   if(ctx->tls_vrfy_result)
