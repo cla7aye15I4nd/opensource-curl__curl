@@ -47,6 +47,8 @@ struct Curl_URL {
 #define HOST_ERROR   (-1) /* out of memory */
 #define HOST_NAME    1
 #define HOST_IPV4    2
+
+int Curl_ipv4_normalize(struct dynbuf *host);
 #define HOST_IPV6    3
 
 #define QUERY_NO      2

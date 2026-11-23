@@ -220,6 +220,25 @@ static CURLcode peer_parse_host(struct Curl_easy *data,
       }
       if(result)
         return result;
+      if(ISDIGIT(pp->tmp_host[0])) {
+        struct dynbuf host;
+        curlx_dyn_init(&host, CURL_MAX_INPUT_LENGTH);
+        result = curlx_dyn_add(&host, pp->tmp_host);
+        if(result)
+          return result;
+        switch(Curl_ipv4_normalize(&host)) {
+        case HOST_ERROR:
+          curlx_dyn_free(&host);
+          return CURLE_OUT_OF_MEMORY;
+        case HOST_IPV4:
+          curlx_free(pp->tmp_host);
+          pp->tmp_host = curlx_dyn_ptr(&host);
+          break;
+        default:
+          curlx_dyn_free(&host);
+          break;
+        }
+      }
       pp->host.str = pp->tmp_host;
       pp->host.len = strlen(pp->host.str);
     }

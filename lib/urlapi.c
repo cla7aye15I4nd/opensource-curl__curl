@@ -570,8 +570,7 @@ static CURLUcode hostname_check6(struct Curl_URL *u, char *hostname,
  *
  * @unittest 1675
  */
-UNITTEST int ipv4_normalize(struct dynbuf *host);
-UNITTEST int ipv4_normalize(struct dynbuf *host)
+int Curl_ipv4_normalize(struct dynbuf *host)
 {
   bool done = FALSE;
   int n = 0;
@@ -739,8 +738,8 @@ static CURLUcode parse_authority(struct Curl_URL *u,
   else if(auth[offset] == '[')
     uc = ipv6_parse(u, curlx_dyn_ptr(host), curlx_dyn_len(host));
   else {
-    /* ipv4_normalize() returns *NAME, *IPV4 or *ERROR */
-    int type = ipv4_normalize(host);
+    /* Curl_ipv4_normalize() returns *NAME, *IPV4 or *ERROR */
+    int type = Curl_ipv4_normalize(host);
 
     if(type == HOST_NAME)
       uc = Curl_hostname_check(curlx_dyn_ptr(host), curlx_dyn_len(host));
@@ -2092,7 +2091,7 @@ static CURLUcode url_sethost(CURLU *u, struct dynbuf *encp,
       curlx_dyn_init(&dbuf, CURL_MAX_INPUT_LENGTH);
       if(curlx_dyn_addn(&dbuf, decoded, dlen))
         bad = TRUE;
-      else if(ipv4_normalize(&dbuf) == HOST_IPV4) {
+      else if(Curl_ipv4_normalize(&dbuf) == HOST_IPV4) {
         curlx_dyn_reset(encp);
         if(curlx_dyn_addn(encp, curlx_dyn_ptr(&dbuf), curlx_dyn_len(&dbuf)))
           bad = TRUE;
@@ -2103,7 +2102,7 @@ static CURLUcode url_sethost(CURLU *u, struct dynbuf *encp,
   }
   else if(hostname_check6(u, newp, n))
     bad = TRUE;
-  else if(ipv4_normalize(encp) == HOST_ERROR)
+  else if(Curl_ipv4_normalize(encp) == HOST_ERROR)
     bad = TRUE;
   if(bad) {
     curlx_dyn_free(encp);
