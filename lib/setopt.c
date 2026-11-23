@@ -1402,8 +1402,8 @@ static CURLcode setopt_mimepost(struct Curl_easy *data, curl_mime *mimep)
 #ifndef CURL_DISABLE_FORM_API
     Curl_mime_cleanpart(data->state.formp);
     curlx_safefree(data->state.formp);
-    data->state.mimepost = NULL;
 #endif
+    data->state.mimepost = NULL;
   }
   return result;
 }

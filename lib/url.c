@@ -169,6 +169,7 @@ void Curl_freeset(struct Curl_easy *data)
 #if !defined(CURL_DISABLE_MIME) || !defined(CURL_DISABLE_FORM_API)
   Curl_mime_cleanpart(data->set.mimepostp);
   curlx_safefree(data->set.mimepostp);
+  data->state.mimepost = NULL;
 #endif
 
 #ifndef CURL_DISABLE_COOKIES
