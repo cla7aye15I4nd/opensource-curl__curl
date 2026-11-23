@@ -83,8 +83,8 @@ static CURLcode prox_custom_ignore(void *user_data,
   return CURLE_OK;
 }
 
-static CURLcode proxy_collect_auth(void *ctx, const struct Curl_str *name,
-                                   const struct Curl_str *value,
+static CURLcode proxy_collect_auth(void *ctx, struct Curl_str *name,
+                                   struct Curl_str *value,
                                    const char *raw)
 {
   struct dynbuf *auth = ctx;
