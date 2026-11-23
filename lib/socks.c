@@ -581,9 +581,6 @@ static CURLproxycode socks5_req0_init(struct Curl_cfilter *cf,
   if(auth & ~(CURLAUTH_BASIC | CURLAUTH_GSSAPI))
     infof(data, "warning: unsupported value passed to "
           "CURLOPT_SOCKS5_AUTH: %u", auth);
-  if(!(auth & CURLAUTH_BASIC))
-    /* disable username/password auth */
-    Curl_creds_unlink(&sx->creds);
 
   if(CF_IS_PRIMARY(cf))
     /* the reuse of this connection depends on how this negotiation ends */
@@ -601,7 +598,8 @@ static CURLproxycode socks5_req0_init(struct Curl_cfilter *cf,
     req[1 + nauths] = 1; /* GSS-API */
   }
 #endif
-  if(sx->creds) {
+  /* A service name alone configures GSS-API, not username/password. */
+  if((auth & CURLAUTH_BASIC) && Curl_creds_has_user_or_pass(sx->creds)) {
     ++nauths;
     req[1 + nauths] = 2; /* username/password */
   }
