@@ -1716,11 +1716,13 @@ static CURLcode wssl_handshake(struct Curl_cfilter *cf, struct Curl_easy *data)
       failf(data, "unable to get peer certificate");
       return CURLE_PEER_FAILED_VERIFICATION;
     }
-    if(conn_config->verifyhost && !connssl->peer.sni) {
-      ret = wolfSSL_X509_check_ip_asc(cert, connssl->peer.origin->hostname,
-                                      0);
-      CURL_TRC_CF(data, cf, "check peer certificate for IP match on %s -> %d",
-                  connssl->peer.origin->hostname, ret);
+    if(conn_config->verifyhost) {
+      if(!connssl->peer.sni)
+        ret = wolfSSL_X509_check_ip_asc(cert, connssl->peer.origin->hostname,
+                                        0);
+      else if(!conn_config->verifypeer)
+        ret = wolfSSL_X509_check_host(cert, connssl->peer.sni,
+                                      strlen(connssl->peer.sni), 0, NULL);
       if(ret != WOLFSSL_SUCCESS)
         detail = DOMAIN_NAME_MISMATCH;
     }
