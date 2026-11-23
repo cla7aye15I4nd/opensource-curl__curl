@@ -106,6 +106,7 @@ struct socks_ctx {
   unsigned char version;
   BIT(resolve_local);
   BIT(socks4a);
+  BIT(offered_basic);
 };
 
 #if defined(HAVE_GSSAPI) || defined(USE_WINDOWS_SSPI)
@@ -610,6 +611,7 @@ static CURLproxycode socks5_req0_init(struct Curl_cfilter *cf,
     return CURLPX_NO_AUTH;
   }
   req[1] = nauths;
+  sx->offered_basic = !!memchr(&req[2], 2, nauths);
   req_len = 2 + nauths;
 
   result = Curl_bufq_write(&sx->iobuf, req, req_len, &nwritten);
@@ -659,13 +661,13 @@ static CURLproxycode socks5_check_resp0(struct socks_ctx *sx,
     return CURLPX_GSSAPI_PERMSG;
   case 2:
     /* regular name + password authentication */
-    if(data->set.socks5auth & CURLAUTH_BASIC) {
+    if(sx->offered_basic) {
       if(CF_IS_PRIMARY(cf))
         CF_CONN(cf)->bits.socks5_authenticated = TRUE;
       sxstate(sx, cf, data, SOCKS5_ST_AUTH_INIT);
       return CURLPX_OK;
     }
-    failf(data, "BASIC authentication proposed but not enabled.");
+    failf(data, "SOCKS5 proxy selected an unoffered authentication method.");
     return CURLPX_NO_AUTH;
   case 255:
     failf(data, "No authentication method was acceptable.");
