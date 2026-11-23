@@ -1949,21 +1949,24 @@ static CURLcode http_set_aptr_host(struct Curl_easy *data)
       /* If the host begins with '[', we start searching for the port after
          the bracket has been closed */
       if(*cookiehost == '[') {
-        char *closingbracket;
-        /* since the 'cookiehost' is an allocated memory area that will be
-           freed later we cannot increment the pointer */
-        memmove(cookiehost, cookiehost + 1, strlen(cookiehost) - 1);
-        closingbracket = strchr(cookiehost, ']');
-        if(closingbracket)
+        char *closingbracket = strchr(cookiehost + 1, ']');
+        if(closingbracket &&
+           (!closingbracket[1] || (closingbracket[1] == ':'))) {
           *closingbracket = 0;
+          memmove(cookiehost, cookiehost + 1, closingbracket - cookiehost);
+        }
+        else
+          *cookiehost = 0;
       }
       else {
-        int startsearch = 0;
-        char *colon = strchr(cookiehost + startsearch, ':');
+        char *colon = strchr(cookiehost, ':');
         if(colon)
           *colon = 0; /* The host must not include an embedded port number */
       }
-      data->req.cookiehost = cookiehost;
+      if(*cookiehost)
+        data->req.cookiehost = cookiehost;
+      else
+        curlx_free(cookiehost);
     }
 #endif
 
