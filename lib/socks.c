@@ -1068,6 +1068,10 @@ process_state:
       failf(data, "Unable to negotiate SOCKS5 GSS-API context.");
       return CURLPX_GSSAPI;
     }
+    if(CF_CONN(cf)->socks5_gssapi_enctype) {
+      failf(data, "SOCKS5 GSS-API protection not yet implemented.");
+      return socks_failed(sx, cf, data, CURLPX_GSSAPI_PROTECTION);
+    }
     sxstate(sx, cf, data, SOCKS5_ST_REQ1_INIT);
     goto process_state;
 #else
@@ -1132,12 +1136,6 @@ process_state:
       return socks_failed(sx, cf, data, presult);
     else if(!done)
       return CURLPX_OK;
-#if defined(HAVE_GSSAPI) || defined(USE_WINDOWS_SSPI)
-    if(CF_CONN(cf)->socks5_gssapi_enctype) {
-      failf(data, "SOCKS5 GSS-API protection not yet implemented.");
-      return CURLPX_GSSAPI_PROTECTION;
-    }
-#endif
     sxstate(sx, cf, data, SOCKS5_ST_RESP1_RECV);
     FALLTHROUGH();
 
