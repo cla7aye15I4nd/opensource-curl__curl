@@ -40,6 +40,10 @@ static CURLcode test_lib1398(const char *arg)
 
 /* #define curl_msnprintf snprintf */
 
+  rc = curl_msnprintf(output, 8, "%#.*x", INT_MAX, 1U);
+  fail_unless(rc == 7, "return code should be 7");
+  fail_unless(!strcmp(output, "0x00000"), "wrong output");
+
   /* negative precision is treated as if omitted */
   rc = curl_msnprintf(output, sizeof(output), "%.*s", -1, str);
   fail_unless(rc == 3, "return code should be 3");

@@ -918,8 +918,9 @@ static bool out_number(void *userp,
   }
 
   if(prec > 0)
-    /* the precision zeros are output right before the digits */
-    width -= prec;
+    /* Precision zeros count toward the field width. Avoid carrying a large
+       negative width into the deductions for prefixes and signs. */
+    width = (width > prec) ? width - prec : 0;
 
   if(is_alt && base == 16)
     width -= 2;
