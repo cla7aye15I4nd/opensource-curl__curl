@@ -1119,7 +1119,7 @@ static int myssh_in_UPLOAD_INIT(struct Curl_easy *data,
     if((err == SSH_FX_NO_SUCH_FILE ||
         err == SSH_FX_FAILURE ||
         err == SSH_FX_NO_SUCH_PATH) &&
-       data->set.ftp_create_missing_dirs &&
+       data->set.ftp_create_missing_dirs && !sshc->secondCreateDirs &&
        (strlen(sshp->path) > 1)) {
       /* try to create the path remotely */
       rc = 0;
