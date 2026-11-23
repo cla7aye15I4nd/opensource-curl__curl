@@ -449,26 +449,3 @@ void Curl_ssl_conn_config_cleanup(struct connectdata *conn)
   Curl_ssl_config_cleanup(&conn->proxy_ssl_config);
 #endif
 }
-
-void Curl_ssl_conn_config_update(struct Curl_easy *data, bool for_proxy)
-{
-  /* May be called on an easy that has no connection yet */
-  if(data->conn) {
-    struct ssl_easy_config *src;
-    struct ssl_filter_config *dest;
-#ifndef CURL_DISABLE_PROXY
-    src = for_proxy ? &data->set.proxy_ssl : &data->set.ssl;
-    dest = for_proxy ? &data->conn->proxy_ssl_config : &data->conn->ssl_config;
-#else
-    (void)for_proxy;
-    src = &data->set.ssl;
-    dest = &data->conn->ssl_config;
-#endif
-    dest->verifyhost = src->verifyhost;
-    dest->verifypeer = src->verifypeer;
-    dest->verifystatus = src->verifystatus;
-#ifdef USE_ECH
-    dest->ech = src->ech;
-#endif
-  }
-}

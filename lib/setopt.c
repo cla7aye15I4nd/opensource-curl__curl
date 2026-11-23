@@ -505,9 +505,6 @@ static CURLcode setopt_long_bool(struct Curl_easy *data, CURLoption option,
      * Enable peer SSL verifying for proxy.
      */
     s->proxy_ssl.verifypeer = enabled;
-
-    /* Update the current connection proxy_ssl_config. */
-    Curl_ssl_conn_config_update(data, TRUE);
     break;
   case CURLOPT_PROXY_SSL_VERIFYHOST:
     /*
@@ -515,8 +512,6 @@ static CURLcode setopt_long_bool(struct Curl_easy *data, CURLoption option,
      */
     s->proxy_ssl.verifyhost = enabled;
     ok = 2;
-    /* Update the current connection proxy_ssl_config. */
-    Curl_ssl_conn_config_update(data, TRUE);
     break;
   case CURLOPT_PROXY_TRANSFER_MODE:
     /*
@@ -599,9 +594,6 @@ static CURLcode setopt_long_bool(struct Curl_easy *data, CURLoption option,
      * Enable peer SSL verifying.
      */
     s->ssl.verifypeer = enabled;
-
-    /* Update the current connection ssl_config. */
-    Curl_ssl_conn_config_update(data, FALSE);
     break;
 #ifndef CURL_DISABLE_DOH
   case CURLOPT_DOH_SSL_VERIFYPEER:
@@ -638,9 +630,6 @@ static CURLcode setopt_long_bool(struct Curl_easy *data, CURLoption option,
        Treat 1 and 2 the same */
     s->ssl.verifyhost = enabled;
     ok = 2;
-
-    /* Update the current connection ssl_config. */
-    Curl_ssl_conn_config_update(data, FALSE);
     break;
   case CURLOPT_SSL_VERIFYSTATUS:
     /*
@@ -650,9 +639,6 @@ static CURLcode setopt_long_bool(struct Curl_easy *data, CURLoption option,
       return CURLE_NOT_BUILT_IN;
 
     s->ssl.verifystatus = enabled;
-
-    /* Update the current connection ssl_config. */
-    Curl_ssl_conn_config_update(data, FALSE);
     break;
   case CURLOPT_CERTINFO:
 #ifdef USE_SSL
