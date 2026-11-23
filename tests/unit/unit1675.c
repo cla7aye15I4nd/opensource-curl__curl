@@ -29,7 +29,7 @@ static CURLcode test_unit1675(const char *arg)
 {
   UNITTEST_BEGIN_SIMPLE
 
-  /* Test ipv4_normalize */
+  /* Test Curl_ipv4_normalize */
   {
     struct dynbuf host;
     int fails = 0;
@@ -114,25 +114,25 @@ static CURLcode test_unit1675(const char *arg)
         curlx_dyn_free(&host);
         return CURLE_OUT_OF_MEMORY;
       }
-      rc = ipv4_normalize(&host);
+      rc = Curl_ipv4_normalize(&host);
       if(tests[i].out) {
         if((rc != HOST_IPV4) ||
            strcmp(curlx_dyn_ptr(&host), tests[i].out)) {
-          curl_mfprintf(stderr, "ipv4_normalize('%s') failed: "
+          curl_mfprintf(stderr, "Curl_ipv4_normalize('%s') failed: "
                         "expected '%s', got '%s'\n",
                         tests[i].in, tests[i].out, curlx_dyn_ptr(&host));
           fails++;
         }
       }
       else if(rc == HOST_IPV4) {
-        curl_mfprintf(stderr, "ipv4_normalize('%s') succeeded unexpectedly:"
+        curl_mfprintf(stderr, "unexpected IPv4 normalization of '%s':"
                       " got '%s'\n",
                       tests[i].in, curlx_dyn_ptr(&host));
         fails++;
       }
     }
     curlx_dyn_free(&host);
-    abort_if(fails, "ipv4_normalize tests failed");
+    abort_if(fails, "Curl_ipv4_normalize tests failed");
   }
 
   /* Test urlencode_str */
