@@ -1952,7 +1952,7 @@ static CURLcode http_set_aptr_host(struct Curl_easy *data)
         char *closingbracket;
         /* since the 'cookiehost' is an allocated memory area that will be
            freed later we cannot increment the pointer */
-        memmove(cookiehost, cookiehost + 1, strlen(cookiehost) - 1);
+        memmove(cookiehost, cookiehost + 1, strlen(cookiehost));
         closingbracket = strchr(cookiehost, ']');
         if(closingbracket)
           *closingbracket = 0;
