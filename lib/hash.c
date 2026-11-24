@@ -126,7 +126,7 @@ static size_t hash_socket(const void *key, size_t key_length,
   if(key_length != sizeof(socket))
     return 0;
   memcpy(&socket, key, sizeof(socket));
-  return (size_t)(socket % (curl_socket_t)slots_num);
+  return (size_t)socket % slots_num;
 }
 
 static size_t compare_socket(const void *key1, size_t key1_len,
