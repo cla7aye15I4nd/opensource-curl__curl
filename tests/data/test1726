@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP GET
+--no-clobber
+Content-Disposition
+</keywords>
+</info>
+
+<reply>
+<data crlf="headers" nocheck="yes">
+HTTP/1.1 200 OK
+Content-Length: 4
+Content-Disposition: attachment; filename="exist%TESTNUMBER.txt"
+
+foo
+</data>
+</reply>
+
+<client>
+<server>
+http
+</server>
+<features>
+http
+</features>
+<name>
+Content-Disposition filename collision with --no-clobber
+</name>
+<command option="no-output no-include">
+-OJ --no-clobber --output-dir %LOGDIR http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+</command>
+<file name="%LOGDIR/exist%TESTNUMBER.txt">
+original
+</file>
+</client>
+
+<verify>
+<file name="%LOGDIR/exist%TESTNUMBER.txt">
+original
+</file>
+<file1 name="%LOGDIR/exist%TESTNUMBER-1.txt">
+foo
+</file1>
+</verify>
+</testcase>
