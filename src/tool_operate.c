@@ -1423,16 +1423,18 @@ static CURLcode create_single(struct OperationConfig *config,
         curlx_fclose(etag_first.stream);
       return result;
     }
-    per->etag_save = etag_first; /* copy the whole struct */
     if(state->uploadfile) {
       per->uploadfile = curlx_strdup(state->uploadfile);
       if(!per->uploadfile ||
          SetHTTPrequest(TOOL_HTTPREQ_PUT, &config->httpreq)) {
         curlx_safefree(per->uploadfile);
         curl_easy_cleanup(curl);
+        if(etag_first.fopened)
+          curlx_fclose(etag_first.stream);
         return CURLE_FAILED_INIT;
       }
     }
+    per->etag_save = etag_first;
     per->config = config;
     per->curl = curl;
     per->urlnum = u->num;

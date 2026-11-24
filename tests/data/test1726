@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+etag
+</keywords>
+</info>
+<client>
+<name>
+Close the ETag output when upload methods conflict
+</name>
+<command option="no-output">
+--etag-save %LOGDIR/etag%TESTNUMBER -T %LOGDIR/upload%TESTNUMBER -d x=1 http://%HOSTIP:%NOLISTENPORT/%TESTNUMBER
+</command>
+<file name="%LOGDIR/upload%TESTNUMBER">
+upload body
+</file>
+</client>
+<verify>
+<errorcode>
+2
+</errorcode>
+</verify>
+</testcase>
