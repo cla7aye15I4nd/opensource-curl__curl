@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+unittest
+HTTP POST
+</keywords>
+</info>
+
+<client>
+<features>
+unittest
+http
+!torture
+</features>
+<name>
+COPYPOSTFIELDS keeps the previous data on allocation failure
+</name>
+<command option="no-memdebug">
+</command>
+</client>
+</testcase>
