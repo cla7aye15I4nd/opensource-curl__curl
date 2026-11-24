@@ -61,6 +61,10 @@ static void t1603_test_socket_type(void)
   int value = 1;
   int collision_value = 2;
   int replacement_value = 3;
+#ifndef _WIN32
+  curl_socket_t negative_key = -2;
+  int negative_value = 5;
+#endif
 #if SIZEOF_CURL_SOCKET_T > 4
   curl_socket_t high_key = ((curl_socket_t)1 << 32) + 1;
   int high_value = 4;
@@ -105,6 +109,17 @@ static void t1603_test_socket_type(void)
               "deleted socket key was found");
   fail_unless(Curl_hash_pick(&hash, &collision, sizeof(collision)) ==
               &collision_value, "collision was lost after deletion");
+#ifndef _WIN32
+  fail_unless(!Curl_hash_pick(&hash, &negative_key, sizeof(negative_key)),
+              "unregistered negative key was found");
+  fail_unless(Curl_hash_add(&hash, &negative_key, sizeof(negative_key),
+                            &negative_value) == &negative_value,
+              "negative key insertion failed");
+  fail_unless(Curl_hash_pick(&hash, &negative_key, sizeof(negative_key)) ==
+              &negative_value, "negative key lookup failed");
+  fail_unless(!Curl_hash_delete(&hash, &negative_key, sizeof(negative_key)),
+              "negative key deletion failed");
+#endif
   Curl_hash_destroy(&hash);
 }
 
