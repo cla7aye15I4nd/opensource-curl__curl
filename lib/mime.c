@@ -44,8 +44,6 @@ struct Curl_easy;
 #include "slist.h"
 #include "curlx/dynbuf.h"
 
-#define MAX_MIME_LEVELS 40 /* avoid deep nesting */
-
 #define READ_ERROR   ((size_t)-1)
 #define STOP_FILLING ((size_t)-2)
 

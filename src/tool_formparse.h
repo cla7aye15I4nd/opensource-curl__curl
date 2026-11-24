@@ -62,6 +62,8 @@ int formparse(const char *input,
               struct tool_mime **mimecurrent,
               bool literal_value);
 CURLcode tool2curlmime(CURL *curl, struct tool_mime *m, curl_mime **mime);
+CURLcode tool_mime_get_parts(struct tool_mime *part,
+                             struct tool_mime ***parts, size_t *count);
 void tool_mime_free(struct tool_mime *mime);
 
 #endif /* HEADER_CURL_TOOL_FORMPARSE_H */

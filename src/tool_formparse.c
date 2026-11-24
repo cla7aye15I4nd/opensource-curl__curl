@@ -28,6 +28,7 @@
 #include "tool_paramhlp.h"
 #include "tool_formparse.h"
 #include "tool_parsecfg.h"
+#include "mime.h"
 
 /* tool_mime functions. */
 static struct tool_mime *tool_mime_new(struct tool_mime *parent,
@@ -48,6 +49,16 @@ static struct tool_mime *tool_mime_new(struct tool_mime *parent,
 
 static struct tool_mime *tool_mime_new_parts(struct tool_mime *parent)
 {
+  struct tool_mime *ancestor;
+  unsigned int level = 1;
+
+  for(ancestor = parent; ancestor; ancestor = ancestor->parent) {
+    if(++level > MAX_MIME_LEVELS) {
+      warnf("MIME nesting exceeds %u levels", (unsigned int)MAX_MIME_LEVELS);
+      return NULL;
+    }
+  }
+
   return tool_mime_new(parent, TOOLMIME_PARTS);
 }
 
@@ -175,11 +186,10 @@ static struct tool_mime *tool_mime_new_filedata(struct tool_mime *parent,
 
 void tool_mime_free(struct tool_mime *mime)
 {
-  if(mime) {
+  while(mime) {
+    struct tool_mime *prev = mime->prev;
     if(mime->subparts)
       tool_mime_free(mime->subparts);
-    if(mime->prev)
-      tool_mime_free(mime->prev);
     curlx_safefree(mime->name);
     curlx_safefree(mime->filename);
     curlx_safefree(mime->type);
@@ -187,6 +197,7 @@ void tool_mime_free(struct tool_mime *mime)
     curlx_safefree(mime->data);
     curl_slist_free_all(mime->headers);
     curlx_free(mime);
+    mime = prev;
   }
 }
 
@@ -250,34 +261,43 @@ static int tool_mime_stdin_seek(void *instream, curl_off_t offset, int whence)
 
 #define MAX_FORMPARTS 100000 /* arbitrarily picked */
 
+CURLcode tool_mime_get_parts(struct tool_mime *part,
+                             struct tool_mime ***parts, size_t *count)
+{
+  struct tool_mime *curr;
+  size_t i;
+
+  *parts = NULL;
+  *count = 0;
+  for(curr = part; curr; curr = curr->prev) {
+    if(*count > MAX_FORMPARTS)
+      return CURLE_BAD_FUNCTION_ARGUMENT;
+    ++*count;
+  }
+  if(!*count)
+    return CURLE_OK;
+
+  *parts = curlx_malloc(sizeof(**parts) * *count);
+  if(!*parts)
+    return CURLE_OUT_OF_MEMORY;
+
+  /* The sibling list runs backwards. */
+  for(i = *count; i; --i, part = part->prev)
+    (*parts)[i - 1] = part;
+
+  return CURLE_OK;
+}
+
 static CURLcode tool2curlparts(CURL *curl, struct tool_mime *m,
                                curl_mime *mime)
 {
-  CURLcode result = CURLE_OK;
-  struct tool_mime *curr;
-  struct tool_mime **nodes = NULL;
-  int count;
-  int i;
+  struct tool_mime **nodes;
+  size_t count;
+  size_t i;
+  CURLcode result = tool_mime_get_parts(m, &nodes, &count);
 
-  if(!m)
-    return CURLE_OK;
-
-  for(curr = m, count = 0; curr; curr = curr->prev) {
-    if(count > MAX_FORMPARTS)
-      return CURLE_BAD_FUNCTION_ARGUMENT;
-    count++;
-  }
-
-  nodes = curlx_malloc(sizeof(struct tool_mime *) * count);
-  if(!nodes)
-    return CURLE_OUT_OF_MEMORY;
-
-  /* populate array from the end to the beginning */
-  curr = m;
-  for(i = count - 1; i >= 0; i--) {
-    nodes[i] = curr;
-    curr = curr->prev;
-  }
+  if(result)
+    return result;
 
   for(i = 0; i < count; i++) {
     struct tool_mime *node = nodes[i];

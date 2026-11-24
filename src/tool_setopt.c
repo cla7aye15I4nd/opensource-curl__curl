@@ -411,14 +411,8 @@ static CURLcode libcurl_generate_mime_part(CURL *curl,
   const char *filename = part->filename;
   char *escaped;
 
-  /* Parts are linked in reverse order. */
-  if(part->prev)
-    result = libcurl_generate_mime_part(curl, config, part->prev, mimeno);
-
-  /* Create the part. */
-  if(!result)
-    result = easysrc_addf(&easysrc_code, "part%d = curl_mime_addpart(mime%d);",
-                          mimeno, mimeno);
+  result = easysrc_addf(&easysrc_code, "part%d = curl_mime_addpart(mime%d);",
+                        mimeno, mimeno);
   if(result)
     return result;
 
@@ -555,10 +549,16 @@ static CURLcode libcurl_generate_mime(CURL *curl,
     result = easysrc_addf(&easysrc_clean, "mime%d = NULL;", *mimeno);
 
   if(toolmime->subparts && !result) {
-    result = easysrc_addf(&easysrc_decl, "curl_mimepart *part%d;", *mimeno);
+    struct tool_mime **parts;
+    size_t count;
+    size_t i;
+
+    result = tool_mime_get_parts(toolmime->subparts, &parts, &count);
     if(!result)
-      result = libcurl_generate_mime_part(curl, config,
-                                          toolmime->subparts, *mimeno);
+      result = easysrc_addf(&easysrc_decl, "curl_mimepart *part%d;", *mimeno);
+    for(i = 0; !result && i < count; ++i)
+      result = libcurl_generate_mime_part(curl, config, parts[i], *mimeno);
+    curlx_free(parts);
   }
 
   return result;

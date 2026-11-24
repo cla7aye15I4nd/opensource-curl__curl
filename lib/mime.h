@@ -25,6 +25,10 @@
  ***************************************************************************/
 #include "curl_setup.h"
 
+struct Curl_easy;
+
+#define MAX_MIME_LEVELS 40 /* avoid deep nesting */
+
 #define MIME_BOUNDARY_DASHES            24  /* leading boundary dashes */
 #define MIME_RAND_BOUNDARY_CHARS        22  /* Nb. of random boundary chars. */
 #define MAX_ENCODED_LINE_LENGTH         76  /* Maximum encoded line length. */
