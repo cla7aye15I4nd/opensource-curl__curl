@@ -1282,10 +1282,8 @@ static ParameterError parse_ech(struct OperationConfig *config,
         curlx_free(tmpcfg);
         if(!tmp)
           return PARAM_NO_MEM;
-        config->ech_config = curlx_strdup(tmp);
+        err = getstr(&config->ech_config, tmp, DENY_BLANK);
         curl_free(tmp);
-        if(!config->ech_config)
-          return PARAM_NO_MEM;
       }
     } /* file done */
   }

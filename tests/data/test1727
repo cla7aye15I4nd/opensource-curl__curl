@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+ECH
+</keywords>
+</info>
+<reply>
+<data crlf="headers">
+HTTP/1.1 200 OK
+Content-Length: 4
+
+foo
+</data>
+</reply>
+<client>
+<features>
+ECH
+</features>
+<server>
+http
+</server>
+<name>
+Replace an inline ECH configuration with a file
+</name>
+<command>
+--ech ecl:AAAA --ech ecl:@%LOGDIR/ech%TESTNUMBER http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+</command>
+<file name="%LOGDIR/ech%TESTNUMBER">
+ZGVtbw==
+</file>
+</client>
+<verify>
+<protocol crlf="headers">
+GET /%TESTNUMBER HTTP/1.1
+Host: %HOSTIP:%HTTPPORT
+User-Agent: curl/%VERSION
+Accept: */*
+
+</protocol>
+</verify>
+</testcase>
