@@ -1279,6 +1279,11 @@ static CURLcode ftp_port_send_command(struct Curl_easy *data,
     }
   }
 
+  if(fcmd == DONE) {
+    failf(data, "No usable FTP active mode command");
+    return CURLE_FTP_PORT_FAILED;
+  }
+
   /* store which command was sent */
   ftpc->count1 = fcmd;
   ftp_state(data, ftpc, FTP_PORT);

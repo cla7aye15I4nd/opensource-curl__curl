@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+FTP
+FTP-ipv6
+IPv6
+EPRT
+</keywords>
+</info>
+<reply>
+<servercmd>
+REPLY EPRT 502 no such command
+</servercmd>
+</reply>
+<client>
+<features>
+IPv6
+</features>
+<server>
+ftp-ipv6
+</server>
+<name>
+IPv6 active FTP fails when the server rejects EPRT
+</name>
+<command>
+--max-time %FTPTIME2 -g "ftp://%HOST6IP:%FTP6PORT/%TESTNUMBER" -P -
+</command>
+</client>
+<verify>
+<strippart>
+s/^(EPRT \|2\|::1\|)(\S*)/$1/
+</strippart>
+<protocol crlf="yes">
+USER anonymous
+PASS ftp@example.com
+PWD
+EPRT |2|::1|
+</protocol>
+<errorcode>
+30
+</errorcode>
+</verify>
+</testcase>
