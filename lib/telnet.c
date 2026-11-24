@@ -1319,6 +1319,13 @@ static CURLcode telnet_do(struct Curl_easy *data, bool *done)
           if(n == 0)                        /* no bytes */
             break;
 
+          if(n > buf_size) {
+            failf(data, "TELNET read callback returned too many bytes");
+            keepon = FALSE;
+            result = CURLE_READ_ERROR;
+            break;
+          }
+
           /* fall through with number of bytes read */
           readfile_read = (DWORD)n;
         }
@@ -1509,16 +1516,23 @@ static CURLcode telnet_do(struct Curl_easy *data, bool *done)
       }
       else {
         /* read from user-supplied method */
-        snread = (int)data->state.fread_func(buffer, 1, sizeof(buffer),
-                                             data->state.in);
-        if(snread == CURL_READFUNC_ABORT) {
+        size_t n = data->state.fread_func(buffer, 1, sizeof(buffer),
+                                         data->state.in);
+        if(n == CURL_READFUNC_ABORT) {
           failf(data, "operation aborted by callback");
           result = CURLE_ABORTED_BY_CALLBACK;
           keepon = FALSE;
           break;
         }
-        if(snread == CURL_READFUNC_PAUSE)
+        if(n == CURL_READFUNC_PAUSE)
           break;
+        if(n > sizeof(buffer)) {
+          failf(data, "TELNET read callback returned too many bytes");
+          result = CURLE_READ_ERROR;
+          keepon = FALSE;
+          break;
+        }
+        snread = (ssize_t)n;
       }
 
       if(snread > 0) {
