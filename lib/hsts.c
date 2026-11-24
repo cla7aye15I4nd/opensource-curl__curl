@@ -622,6 +622,12 @@ CURLcode Curl_hsts_loadfiles(struct Curl_easy *data)
   CURLcode result = CURLE_OK;
   struct curl_slist *l = data->state.hstslist;
   if(l) {
+    if(!data->hsts) {
+      /* The handle may have detached from its shared cache. */
+      data->hsts = Curl_hsts_init();
+      if(!data->hsts)
+        return CURLE_OUT_OF_MEMORY;
+    }
     Curl_share_lock(data, CURL_LOCK_DATA_HSTS, CURL_LOCK_ACCESS_SINGLE);
 
     while(l) {

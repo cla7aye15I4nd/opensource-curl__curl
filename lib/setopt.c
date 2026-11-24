@@ -1229,16 +1229,15 @@ static CURLcode setopt_long_misc(struct Curl_easy *data, CURLoption option,
       }
       data->hsts->flags = (unsigned int)arg;
     }
-    else if(!data->share || !data->share->hsts) {
-      /* throw away the HSTS cache unless shared */
-      Curl_hsts_cleanup(&data->hsts);
-      /* flush all the entries */
+    else {
+      if(!data->share || !data->share->hsts)
+        Curl_hsts_cleanup(&data->hsts);
+      else
+        /* detach from shared HSTS cache without freeing it */
+        data->hsts = NULL;
       curl_slist_free_all(data->state.hstslist);
       data->state.hstslist = NULL;
     }
-    else
-      /* detach from shared HSTS cache without freeing it */
-      data->hsts = NULL;
     break;
 #endif
 #ifndef CURL_DISABLE_ALTSVC
