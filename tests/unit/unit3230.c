@@ -199,6 +199,30 @@ static void t3230_test_socket_all_timer_failure(void)
   curl_multi_cleanup(handle);
 }
 
+static void t3230_test_connection_limits(void)
+{
+  struct Curl_multi *multi = curl_multi_init();
+  if(!multi) {
+    fail("multi handle creation failed");
+    return;
+  }
+
+  fail_unless(curl_multi_setopt(multi, CURLMOPT_MAX_HOST_CONNECTIONS, 2L) ==
+              CURLM_OK, "setting the per-host limit failed");
+  fail_unless(curl_multi_setopt(multi, CURLMOPT_MAX_TOTAL_CONNECTIONS, 3L) ==
+              CURLM_OK, "setting the total limit failed");
+  fail_unless(curl_multi_setopt(multi, CURLMOPT_MAX_HOST_CONNECTIONS, -1L) ==
+              CURLM_BAD_FUNCTION_ARGUMENT, "negative per-host limit accepted");
+  fail_unless(curl_multi_setopt(multi, CURLMOPT_MAX_TOTAL_CONNECTIONS, -1L) ==
+              CURLM_BAD_FUNCTION_ARGUMENT, "negative total limit accepted");
+  fail_unless(multi->max_host_connections == 2,
+              "the per-host limit changed after an invalid update");
+  fail_unless(multi->max_total_connections == 3,
+              "the total limit changed after an invalid update");
+
+  curl_multi_cleanup(multi);
+}
+
 static CURLcode test_unit3230(const char *arg)
 {
   UNITTEST_BEGIN(t3230_setup())
@@ -206,6 +230,7 @@ static CURLcode test_unit3230(const char *arg)
   t3230_test_timer_updates();
   t3230_test_add_handle_timer_failure();
   t3230_test_socket_all_timer_failure();
+  t3230_test_connection_limits();
 
   UNITTEST_END(curl_global_cleanup())
 }

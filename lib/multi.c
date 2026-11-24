@@ -3421,14 +3421,16 @@ CURLMcode curl_multi_setopt(CURLM *m, CURLMoption option, ...)
     case CURLMOPT_MAX_HOST_CONNECTIONS:
       if(!curlx_sltouz(va_arg(param, long), &szarg))
         mresult = CURLM_BAD_FUNCTION_ARGUMENT;
-      multi->max_host_connections = (szarg < UINT32_MAX) ?
-                                    (uint32_t)szarg : UINT32_MAX;
+      else
+        multi->max_host_connections = (szarg < UINT32_MAX) ?
+                                      (uint32_t)szarg : UINT32_MAX;
       break;
     case CURLMOPT_MAX_TOTAL_CONNECTIONS:
       if(!curlx_sltouz(va_arg(param, long), &szarg))
         mresult = CURLM_BAD_FUNCTION_ARGUMENT;
-      multi->max_total_connections = (szarg < UINT32_MAX) ?
-                                     (uint32_t)szarg : UINT32_MAX;
+      else
+        multi->max_total_connections = (szarg < UINT32_MAX) ?
+                                       (uint32_t)szarg : UINT32_MAX;
       break;
       /* options formerly used for pipelining */
     case CURLMOPT_MAX_PIPELINE_LENGTH:
