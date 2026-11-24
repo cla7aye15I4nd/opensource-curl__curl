@@ -15,10 +15,10 @@ HTTP GET
 http
 </server>
 <name>
---skip-existing with file present
+--skip-existing with a resume offset and file present
 </name>
 <command option="no-output">
--o %LOGDIR/there http://%HOSTIP:%HTTPPORT/%TESTNUMBER --skip-existing
+-o %LOGDIR/there http://%HOSTIP:%HTTPPORT/%TESTNUMBER --skip-existing --continue-at 1
 </command>
 <file name="%LOGDIR/there">
 content

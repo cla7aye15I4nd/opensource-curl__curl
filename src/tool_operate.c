@@ -1135,7 +1135,7 @@ static CURLcode setup_outfile(struct OperationConfig *config,
     }
   }
 
-  if(config->resume_from_current) {
+  if(!per->skip && config->resume_from_current) {
     /* We are told to continue from where we are now. Get the size
        of the file as it is now and open it for append instead */
     curlx_struct_stat fileinfo;
@@ -1148,7 +1148,7 @@ static CURLcode setup_outfile(struct OperationConfig *config,
       config->resume_from = 0;
   }
 
-  if(config->resume_from) {
+  if(!per->skip && config->resume_from) {
 #ifdef __VMS
     /* open file for output, forcing VMS output format into stream
        mode which is needed for stat() call above to always work. */
