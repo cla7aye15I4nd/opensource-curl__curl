@@ -37,6 +37,7 @@ struct per_transfer {
   struct OperationConfig *config; /* for this transfer */
   const struct curl_certinfo *certinfo;
   CURL *curl;
+  curl_mime *mimepost;
   /* NULL or malloced */
   char *uploadfile;
   long retry_remaining;

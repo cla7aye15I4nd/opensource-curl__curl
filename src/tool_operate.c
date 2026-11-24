@@ -238,6 +238,7 @@ static struct per_transfer *del_per_transfer(struct per_transfer *per)
   curlx_free(per->outfile);
   curlx_free(per->url);
   curl_easy_cleanup(per->curl);
+  curl_mime_free(per->mimepost);
   curlx_free(per);
 
   return n;

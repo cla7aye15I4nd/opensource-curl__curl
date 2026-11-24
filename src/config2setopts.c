@@ -899,8 +899,10 @@ static CURLcode check_post_resume(struct OperationConfig *config)
   return CURLE_OK;
 }
 
-static CURLcode setopt_post(struct OperationConfig *config, CURL *curl)
+static CURLcode setopt_post(struct OperationConfig *config,
+                            struct per_transfer *per)
 {
+  CURL *curl = per->curl;
   CURLcode result = CURLE_OK;
   switch(config->httpreq) {
   case TOOL_HTTPREQ_SIMPLEPOST:
@@ -913,14 +915,11 @@ static CURLcode setopt_post(struct OperationConfig *config, CURL *curl)
     }
     break;
   case TOOL_HTTPREQ_MIMEPOST:
-    /* free previous remainders */
-    curl_mime_free(config->mimepost);
-    config->mimepost = NULL;
     result = check_post_resume(config);
     if(!result) {
-      result = tool2curlmime(curl, config->mimeroot, &config->mimepost);
+      result = tool2curlmime(curl, config->mimeroot, &per->mimepost);
       if(!result)
-        result = my_setopt_mimepost(curl, CURLOPT_MIMEPOST, config->mimepost);
+        result = my_setopt_mimepost(curl, CURLOPT_MIMEPOST, per->mimepost);
     }
     break;
   default:
@@ -998,7 +997,7 @@ static CURLcode transfer_setopts(struct OperationConfig *config,
   my_setopt_ptr(curl, CURLOPT_ERRORBUFFER, per->errorbuffer);
   my_setopt_long(curl, CURLOPT_TIMEOUT_MS, config->timeout_ms);
 
-  result = setopt_post(config, curl);
+  result = setopt_post(config, per);
   if(result)
     return result;
 
