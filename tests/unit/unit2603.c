@@ -108,6 +108,30 @@ static void parse_success(const struct tcase *t)
 
   Curl_h1_req_parse_free(&p);
 }
+
+static void parse_request_line(const char *line, const char *custom_method,
+                               CURLcode expected)
+{
+  struct h1_req_parser p;
+  size_t nread;
+  size_t len = strlen(line);
+  uint8_t *buf = curlx_malloc(len);
+  CURLcode result;
+
+  if(!buf) {
+    fail("allocating a request-line buffer failed");
+    return;
+  }
+  memcpy(buf, line, len);
+  Curl_h1_req_parse_init(&p, 1024);
+  result = Curl_h1_req_parse_read(&p, buf, len, NULL, custom_method,
+                                  0, &nread);
+  fail_unless(result == expected, "unexpected request-line result");
+  if(!result)
+    fail_unless(nread == len && p.req, "request line was not parsed");
+  Curl_h1_req_parse_free(&p);
+  curlx_free(buf);
+}
 #endif
 
 static CURLcode test_unit2603(const char *arg)
@@ -184,6 +208,9 @@ static CURLcode test_unit2603(const char *arg)
   parse_success(&TEST6a);
   parse_success(&TEST7a);
   parse_success(&TEST7b);
+  parse_request_line("GET / HTTP/1.1\r\n", "GET / HTTP/1.1\r\nX",
+                     CURLE_OK);
+  parse_request_line("GET / \r\n", NULL, CURLE_URL_MALFORMAT);
 #endif
 
   UNITTEST_END_SIMPLE
