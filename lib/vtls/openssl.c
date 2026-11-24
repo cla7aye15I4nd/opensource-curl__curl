@@ -3326,8 +3326,10 @@ CURLcode Curl_ssl_setup_x509_store(struct Curl_cfilter *cf,
 
   /* Consider the X509 store cacheable if it comes from CAfile/CApath,
      or no source is provided and we are falling back to OpenSSL's built-in
-     default. */
+     default. Give SSL context callbacks their own store because they
+     can change its contents. */
   cache_criteria_met = (data->set.ssl_ca_cache_timeout != 0) &&
+    !data->set.ssl_fsslctx &&
     conn_config->verifypeer &&
     !conn_config->ca_info_blob &&
     !conn_config->CRLfile &&
@@ -3336,8 +3338,9 @@ CURLcode Curl_ssl_setup_x509_store(struct Curl_cfilter *cf,
 
   ERR_set_mark();
 
-  cached_store = ossl_get_cached_x509_store(cf, data, &is_empty);
-  if(cached_store && cache_criteria_met && X509_STORE_up_ref(cached_store)) {
+  cached_store = cache_criteria_met ?
+    ossl_get_cached_x509_store(cf, data, &is_empty) : NULL;
+  if(cached_store && X509_STORE_up_ref(cached_store)) {
     SSL_CTX_set_cert_store(octx->ssl_ctx, cached_store);
     octx->store_is_empty = is_empty;
   }
