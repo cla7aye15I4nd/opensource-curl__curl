@@ -228,14 +228,8 @@ static CURLcode ssh_setopts(struct OperationConfig *config, CURL *curl)
   if(!config->insecure_ok) {
     char *known = config->knownhosts;
     if(!known) {
-      char *found = findfile(".ssh/known_hosts", FALSE);
-      if(found) {
-        known = curlx_strdup(found);
-        curl_free(found);
-        if(!known)
-          return CURLE_OUT_OF_MEMORY;
-      }
-      else if(!config->hostpubmd5 && !config->hostpubsha256) {
+      known = findfile(".ssh/known_hosts", FALSE);
+      if(!known && !config->hostpubmd5 && !config->hostpubsha256) {
         /* couldn't find an existing one, instead set one that MIGHT work as
            we don't verify the host using other means */
         struct dynbuf k;
