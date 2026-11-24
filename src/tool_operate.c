@@ -759,6 +759,7 @@ static CURLcode post_per_transfer(struct per_transfer *per,
     if(!strcmp(per->uploadfile, ".") && per->infd > 0) {
 #ifndef CURL_WINDOWS_UWP
       sclose(per->infd);
+      per->infd = -1;
 #else
       warnf("Closing per->infd != 0: FD == %d. "
             "This behavior is only supported on desktop Windows", per->infd);
@@ -767,8 +768,11 @@ static CURLcode post_per_transfer(struct per_transfer *per,
   }
   else
 #endif
-    if(per->infdopen)
+    if(per->infdopen) {
       curlx_close(per->infd);
+      per->infd = -1;
+      per->infdopen = FALSE;
+    }
 
   if(!per->skip) {
     result = post_check_result(per, result);
