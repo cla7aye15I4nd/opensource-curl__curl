@@ -74,7 +74,11 @@ static void t1304_empty_literals(struct Curl_easy *data, const char *filename)
     { "machine \"\" login ignored password ignored\n"
       "machine example.com login admin password passwd",
       NETRC_OK, "admin", "passwd" },
-    { "machine example.com login \"\" password \"\"", NETRC_OK, "", "" }
+    { "machine example.com login \"\" password \"\"", NETRC_OK, "", "" },
+    { "machine other.example.com login ignored password ignored\r\n"
+      "machine example.com login admin\r \tpassword passwd\r "
+      "machine next.example.com login next password next",
+      NETRC_OK, "admin", "passwd" }
   };
   size_t i;
 

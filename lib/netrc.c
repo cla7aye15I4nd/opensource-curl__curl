@@ -152,16 +152,8 @@ static void netrc_lexer_cleanup(struct netrc_lexer *lexer)
 static void netrc_skip_blanks(struct netrc_lexer *lexer)
 {
   const char *s = lexer->pos;
-  while(*s) {
-    curlx_str_passblanks(&s);
-    while(*s == '\r')
-      ++s;
-    if(*s == '\n') {
-      ++s;
-    }
-    else
-      break;
-  }
+  while(ISBLANK(*s) || ISNEWLINE(*s))
+    ++s;
   lexer->pos = s;
 }
 
