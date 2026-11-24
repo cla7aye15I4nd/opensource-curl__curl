@@ -287,6 +287,7 @@ CURLcode curlx_dyn_setlen(struct dynbuf *s, size_t set)
   if(set > s->leng)
     return CURLE_BAD_FUNCTION_ARGUMENT;
   s->leng = set;
-  s->bufr[s->leng] = 0;
+  if(s->bufr)
+    s->bufr[set] = 0;
   return CURLE_OK;
 }
