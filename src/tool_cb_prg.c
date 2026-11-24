@@ -75,6 +75,10 @@ static void fly(struct ProgressData *bar, bool moved)
   memset(&buf[1], ' ', bar->width);
   buf[bar->width + 1] = '\0';
 
+  if(bar->bar > bar->width - 6) {
+    bar->bar = bar->width - 6;
+    bar->barmove = -1;
+  }
   memcpy(&buf[bar->bar + 1], "-=O=-", 5);
 
   pos = (sinus[bar->tick % 200] / (1000000 / check)) + 1;
