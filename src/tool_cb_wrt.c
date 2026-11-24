@@ -128,6 +128,8 @@ bool tool_create_output_file(struct OutStruct *outs,
       }
       newfile = curlx_dyn_ptr(&fbuffer); /* remember the new one */
       if(newfile) {
+        if(outs->alloc_filename)
+          curlx_free(outs->filename);
         outs->filename = newfile;
         outs->alloc_filename = TRUE;
       }
@@ -146,7 +148,7 @@ bool tool_create_output_file(struct OutStruct *outs,
 
   if(!file) {
     char errbuf[STRERROR_LEN];
-    warnf("Failed to open the file %s: %s", fname,
+    warnf("Failed to open the file %s: %s", outs->filename,
           curlx_strerror(errno, errbuf, sizeof(errbuf)));
     return FALSE;
   }
