@@ -791,8 +791,10 @@ CURLcode Curl_wssl_setup_x509_store(struct Curl_cfilter *cf,
 
   /* Consider the X509 store cacheable if it comes exclusively from a CAfile,
      or no source is provided and we are falling back to wolfSSL's built-in
-     default. */
+     default. Give SSL context callbacks their own store because they
+     can change its contents. */
   cache_criteria_met = (data->set.ssl_ca_cache_timeout != 0) &&
+    !data->set.ssl_fsslctx &&
     conn_config->verifypeer &&
     !conn_config->CApath &&
     !conn_config->ca_info_blob &&
