@@ -133,7 +133,8 @@ static CURLcode start_req(struct h1_req_parser *parser,
                           const char *custom_method,
                           int options)
 {
-  const char *p, *m, *target, *hv, *scheme, *authority, *path;
+  const char *p = NULL;
+  const char *m, *target, *scheme, *authority, *path;
   size_t m_len, target_len, hv_len, scheme_len, authority_len, path_len;
   size_t i;
   CURLU *url = NULL;
@@ -141,11 +142,13 @@ static CURLcode start_req(struct h1_req_parser *parser,
 
   DEBUGASSERT(!parser->req);
   /* line must match: "METHOD TARGET HTTP_VERSION" */
-  if(custom_method && custom_method[0] &&
-     !strncmp(custom_method, parser->line, strlen(custom_method))) {
-    p = parser->line + strlen(custom_method);
+  if(custom_method && custom_method[0]) {
+    size_t len = strlen(custom_method);
+    if((len < parser->line_len) && (parser->line[len] == ' ') &&
+       !memcmp(custom_method, parser->line, len))
+      p = parser->line + len;
   }
-  else {
+  if(!p) {
     p = memchr(parser->line, ' ', parser->line_len);
     if(!p || p == parser->line)
       goto out;
@@ -155,22 +158,18 @@ static CURLcode start_req(struct h1_req_parser *parser,
   m_len = p - parser->line;
   target = p + 1;
   target_len = hv_len = 0;
-  hv = NULL;
 
   /* URL may contain spaces so scan backwards */
-  for(i = parser->line_len; i > m_len; --i) {
-    if(parser->line[i] == ' ') {
-      hv = &parser->line[i + 1];
+  for(i = parser->line_len; i > m_len + 1; --i) {
+    if(parser->line[i - 1] == ' ') {
       hv_len = parser->line_len - i;
-      target_len = (hv - target) - 1;
+      target_len = i - m_len - 2;
       break;
     }
   }
   /* no SPACE found or empty TARGET or empty HTTP_VERSION */
   if(!target_len || !hv_len)
     goto out;
-
-  (void)hv;
 
   /* The TARGET can be (rfc 9112, ch. 3.2):
    * origin-form:     path + optional query
