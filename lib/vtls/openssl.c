@@ -2598,21 +2598,21 @@ CURLcode Curl_ossl_add_session(struct Curl_cfilter *cf,
     unsigned char *der_session_ptr;
     size_t earlydata_max = 0;
     int ietf_tls_id = SSL_version(octx->ssl);
+    int der_session_len = i2d_SSL_SESSION(session, NULL);
 
-    der_session_size = i2d_SSL_SESSION(session, NULL);
-    if(der_session_size == 0) {
+    if(der_session_len <= 0) {
       result = CURLE_OUT_OF_MEMORY;
       goto out;
     }
 
+    der_session_size = (size_t)der_session_len;
     der_session_buf = der_session_ptr = curlx_malloc(der_session_size);
     if(!der_session_buf) {
       result = CURLE_OUT_OF_MEMORY;
       goto out;
     }
 
-    der_session_size = i2d_SSL_SESSION(session, &der_session_ptr);
-    if(der_session_size == 0) {
+    if(i2d_SSL_SESSION(session, &der_session_ptr) != der_session_len) {
       result = CURLE_OUT_OF_MEMORY;
       goto out;
     }
