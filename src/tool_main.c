@@ -181,9 +181,14 @@ int main(int argc, char *argv[])
 
 #if defined(HAVE_SIGNAL) && defined(SIGPIPE)
 #ifdef DEBUGBUILD
-  if(!curl_getenv("CURL_SIGPIPE_DEBUG"))
-#endif
+  {
+    const char *debug = getenv("CURL_SIGPIPE_DEBUG");
+    if(!debug || !debug[0])
+      (void)signal(SIGPIPE, SIG_IGN);
+  }
+#else
   (void)signal(SIGPIPE, SIG_IGN);
+#endif
 #endif
 
   /* Initialize memory tracking */
