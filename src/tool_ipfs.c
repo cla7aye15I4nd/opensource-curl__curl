@@ -26,6 +26,7 @@
 #ifndef CURL_DISABLE_IPFS
 
 #include "tool_cfgable.h"
+#include "tool_libinfo.h"
 #include "tool_msgs.h"
 #include "tool_ipfs.h"
 
@@ -101,7 +102,8 @@ fail:
  * URL that can be handled by an IPFS gateway.
  */
 CURLcode ipfs_url_rewrite(CURLU *uh, const char *protocol, char **url,
-                          struct OperationConfig *config)
+                          struct OperationConfig *config,
+                          const char **scheme)
 {
   CURLcode result = CURLE_URL_MALFORMAT;
   CURLUcode getResult;
@@ -217,6 +219,10 @@ CURLcode ipfs_url_rewrite(CURLU *uh, const char *protocol, char **url,
   if(!*url)
     goto clean;
 
+  if(curl_strequal(gwscheme, "http") && proto_http)
+    *scheme = proto_http;
+  else if(curl_strequal(gwscheme, "https") && proto_https)
+    *scheme = proto_https;
   result = CURLE_OK;
 
 clean:

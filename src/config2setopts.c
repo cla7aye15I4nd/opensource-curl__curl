@@ -177,12 +177,8 @@ static CURLcode url_proto_and_rewrite(char **url,
       if(!uc &&
          (curl_strequal(schemep, proto_ipfs) ||
           curl_strequal(schemep, proto_ipns))) {
-        result = ipfs_url_rewrite(uh, schemep, url, config);
-        /* short-circuit proto_token, we know it is ipfs or ipns */
-        if(curl_strequal(schemep, proto_ipfs))
-          proto = proto_ipfs;
-        else if(curl_strequal(schemep, proto_ipns))
-          proto = proto_ipns;
+        proto = curl_strequal(schemep, proto_ipfs) ? proto_ipfs : proto_ipns;
+        result = ipfs_url_rewrite(uh, schemep, url, config, &proto);
         if(result)
           config->synthetic_error = TRUE;
       }
