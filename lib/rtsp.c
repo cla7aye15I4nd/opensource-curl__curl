@@ -228,6 +228,11 @@ static CURLcode rtsp_setup_body(struct Curl_easy *data,
         size_t plen = (data->set.postfieldsize >= 0) ?
           (size_t)data->set.postfieldsize : strlen(data->set.postfields);
         req_clen = (curl_off_t)plen;
+        if((data->set.postfieldsize >= 0) &&
+           (req_clen != data->set.postfieldsize)) {
+          failf(data, "RTSP POSTFIELDSIZE exceeds addressable memory");
+          return CURLE_BAD_FUNCTION_ARGUMENT;
+        }
         result = Curl_creader_set_buf(data, data->set.postfields, plen);
       }
       else if(data->state.infilesize >= 0) {
