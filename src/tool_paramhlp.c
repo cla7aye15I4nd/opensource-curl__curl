@@ -167,15 +167,18 @@ ParameterError file2memory_range(char **bufp, size_t *size, FILE *file,
           }
         }
         if(n_add) {
-          if((curl_off_t)(n_add + offset) > endo)
-            n_add = (size_t)(endo - offset + 1);
+          curl_off_t remaining = endo - offset;
+          bool last = (curl_off_t)n_add > remaining;
+
+          if(last)
+            n_add = (size_t)remaining + 1;
 
           if(curlx_dyn_addn(&dyn, ptr_add, n_add))
             return PARAM_NO_MEM;
 
-          offset += n_add;
-          if(offset > endo)
+          if(last)
             break;
+          offset += (curl_off_t)n_add;
         }
       }
     } while(!feof(file));
