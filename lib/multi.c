@@ -3063,6 +3063,8 @@ CURLMcode curl_multi_cleanup(CURLM *m)
           /* if DONE was never called for this handle */
           (void)multi_done(data, CURLE_OK, TRUE);
 
+        /* Connection shutdown below still uses the timeout tree. */
+        Curl_expire_clear_all(data);
         data->multi = NULL; /* clear the association */
         Curl_uint32_tbl_remove(&multi->xfers, mid);
         data->mid = UINT32_MAX;
