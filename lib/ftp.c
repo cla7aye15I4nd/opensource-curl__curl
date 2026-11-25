@@ -646,11 +646,9 @@ static CURLcode getftpresponse(struct Curl_easy *data,
    * Alas, read as much as possible, split up into lines, use the ending
    * line in a response or continue reading. */
 
-  struct connectdata *conn = data->conn;
-  curl_socket_t sockfd = conn->chain.sock;
   CURLcode result = CURLE_OK;
   struct cf_ftp_ctx *ftpc = ftp_get_cf_ctx(data->conn);
-  struct pingpong *pp = &ftpc->pp;
+  struct pingpong *pp;
   size_t nread;
   int cache_skip = 0;
   DEBUGASSERT(ftpcodep);
@@ -661,11 +659,13 @@ static CURLcode getftpresponse(struct Curl_easy *data,
 
   if(!ftpc)
     return CURLE_FAILED_INIT;
+  pp = &ftpc->pp;
 
   while(!*ftpcodep && !result) {
     /* check and reset timeout value every lap */
     timediff_t timeout = Curl_pp_state_timeleft_ms(data, pp);
     timediff_t interval_ms;
+    bool sending = Curl_pp_needs_flush(data, pp);
 
     if(timeout <= 0) {
       failf(data, "FTP response timeout");
@@ -677,9 +677,8 @@ static CURLcode getftpresponse(struct Curl_easy *data,
       interval_ms = timeout;
 
     /*
-     * Since this function is blocking, we need to wait here for input on the
-     * connection and only then we call the response reading function. We do
-     * timeout at least every second to make the timeout check run.
+     * Wait for the control connection to finish sending or receive a reply.
+     * Wake at least every second to check the timeout.
      *
      * A caution here is that the ftp_readresp() function has a cache that may
      * contain pieces of a response from the previous invoke and we need to
@@ -690,7 +689,7 @@ static CURLcode getftpresponse(struct Curl_easy *data,
      *
      */
 
-    if(curlx_dyn_len(&pp->recvbuf) && (cache_skip < 2)) {
+    if(!sending && curlx_dyn_len(&pp->recvbuf) && (cache_skip < 2)) {
       /*
        * There is a cache left since before. We then skipping the wait for
        * socket action, unless this is the same cache like the previous round
@@ -698,10 +697,18 @@ static CURLcode getftpresponse(struct Curl_easy *data,
        * wait for more data anyway.
        */
     }
-    else if(!Curl_conn_data_pending(data)) {
-      curl_socket_t wsock = Curl_pp_needs_flush(data, pp) ?
-        sockfd : CURL_SOCKET_BAD;
-      int ev = Curl_socket_check(sockfd, wsock, interval_ms);
+    else if(sending || !Curl_conn_data_pending(data)) {
+      struct Curl_cfilter *cf = pp->io_user_data;
+      struct easy_pollset ps;
+      int ev;
+      Curl_pollset_init(&ps);
+      result = Curl_pp_pollset(data, pp, &ps);
+      if(!result)
+        result = Curl_conn_cf_adjust_pollset(cf->next, data, &ps);
+      ev = result ? -1 : Curl_pollset_poll(data, &ps, interval_ms);
+      Curl_pollset_cleanup(&ps);
+      if(result)
+        return result;
       if(ev < 0) {
         failf(data, "FTP response aborted due to select/poll error: %d",
               SOCKERRNO);
@@ -713,10 +720,10 @@ static CURLcode getftpresponse(struct Curl_easy *data,
       }
     }
 
-    if(Curl_pp_needs_flush(data, pp)) {
+    if(sending) {
+      /* Finish the command before consuming any reply for it. */
       result = Curl_pp_flushsend(data, pp);
-      if(result)
-        break;
+      continue;
     }
 
     result = ftp_readresp(data, ftpc, pp, ftpcodep, &nread);
@@ -3516,7 +3523,11 @@ static CURLcode ftp_sendquote(struct Curl_easy *data,
       if(!result) {
         pp->response = *Curl_pgrs_now(data); /* timeout relative now */
         result = getftpresponse(data, &nread, &ftpcode);
+        if(result)
+          connclose(data->conn);
       }
+      else if(pp->pending_resp)
+        connclose(data->conn);
       if(result)
         return result;
 
