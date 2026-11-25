@@ -641,7 +641,7 @@ NETRCcode Curl_netrc_scan(struct Curl_easy *data,
       data, store, hostname, user, filealloc, pcreds);
     curlx_free(filealloc);
 #ifdef _WIN32
-    if(retcode == NETRC_FILE_MISSING) {
+    if(home && retcode == NETRC_FILE_MISSING) {
       /* fallback to the old-style "_netrc" file */
       filealloc = curl_maprintf("%s%s_netrc", home, DIR_CHAR);
       if(!filealloc) {

@@ -92,6 +92,7 @@ TESTS_C = \
   unit2640.c \
   unit2641.c \
   unit2642.c \
+  unit3053.c \
   unit3200.c \
   unit3205.c \
   unit3211.c \
