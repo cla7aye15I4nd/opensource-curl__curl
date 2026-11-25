@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+unittest
+netrc
+</keywords>
+</info>
+
+<client>
+<features>
+unittest
+win32
+netrc
+</features>
+<name>
+A missing NETRC override must not search for a relative _netrc
+</name>
+<command>
+"%LOGDIR/netrc-override-%TESTNUMBER"
+</command>
+<file name="%LOGDIR/netrc-override-%TESTNUMBER/(nil)/_netrc">
+machine example.com login cwd-user password cwd-password
+</file>
+<file1 name="%LOGDIR/netrc-override-%TESTNUMBER/home/_netrc">
+machine example.com login home-user password home-password
+</file1>
+</client>
+</testcase>
