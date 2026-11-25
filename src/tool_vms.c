@@ -96,12 +96,10 @@ void vms_special_exit(int code, int vms_show)
   }
 #endif
 
-  if(code > CURL_LAST) {   /* If CURL_LAST exceeded then */
-    vms_code = CURL_LAST;  /* curlmsg.h is out of sync. */
-  }
-  else {
+  if((code < 0) || ((size_t)code >= CURL_ARRAYSIZE(vms_cond)))
+    vms_code = CURL_CURL_LAST | vms_show;
+  else
     vms_code = vms_cond[code] | vms_show;
-  }
   decc$exit(vms_code);
 }
 
