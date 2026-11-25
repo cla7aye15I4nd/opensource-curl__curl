@@ -46,8 +46,9 @@ CURLcode FindWin32CACert(struct OperationConfig *config,
 #endif
 CURLcode win32_init(void);
 
-#ifndef CURL_WINDOWS_UWP
+#if defined(USE_WINSOCK) && !defined(CURL_WINDOWS_UWP)
 curl_socket_t win32_stdin_read_thread(void);
+void win32_stdin_relay_cleanup(void);
 #endif
 
 #endif /* _WIN32 */

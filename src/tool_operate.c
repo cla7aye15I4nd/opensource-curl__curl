@@ -755,20 +755,12 @@ static CURLcode post_per_transfer(struct per_transfer *per,
     return result;
 
 #ifdef _WIN32
-  if(per->uploadfile) {
-    if(!strcmp(per->uploadfile, ".") && per->infd > 0) {
-#ifndef CURL_WINDOWS_UWP
-      sclose(per->infd);
+  /* A stdin relay socket is shared for the life of the process. */
+  if(!per->uploadfile && per->infdopen)
 #else
-      warnf("Closing per->infd != 0: FD == %d. "
-            "This behavior is only supported on desktop Windows", per->infd);
+  if(per->infdopen)
 #endif
-    }
-  }
-  else
-#endif
-    if(per->infdopen)
-      curlx_close(per->infd);
+    curlx_close(per->infd);
 
   if(!per->skip) {
     result = post_check_result(per, result);
@@ -1215,14 +1207,6 @@ static void check_stdin_upload(struct OperationConfig *config,
     if(f == CURL_SOCKET_BAD)
       warnf("win32_stdin_read_thread returned INVALID_SOCKET "
             "falling back to blocking mode");
-    else if(f > INT_MAX) {
-      warnf("win32_stdin_read_thread returned identifier "
-            "larger than INT_MAX. This should not happen unless "
-            "the upper 32 bits of a Windows socket have started "
-            "being used for something... falling back to blocking "
-            "mode");
-      sclose(f);
-    }
     else
       per->infd = (int)f;
 #endif

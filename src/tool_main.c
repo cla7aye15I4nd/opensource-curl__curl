@@ -196,6 +196,10 @@ int main(int argc, char *argv[])
     /* Start our curl operation */
     result = operate(argc, argv);
 
+#if defined(USE_WINSOCK) && !defined(CURL_WINDOWS_UWP)
+    win32_stdin_relay_cleanup();
+#endif
+
     /* Perform the main cleanup */
     globalconf_free();
   }
