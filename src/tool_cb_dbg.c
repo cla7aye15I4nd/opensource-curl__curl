@@ -129,7 +129,7 @@ int tool_debug_cb(CURL *handle, curl_infotype type,
                   char *data, size_t size,
                   void *userdata)
 {
-  FILE *output = tool_stderr;
+  FILE *output;
   const char *text;
   struct timeval tv;
   char timebuf[20];
@@ -166,7 +166,7 @@ int tool_debug_cb(CURL *handle, curl_infotype type,
   else
     idsbuf[0] = 0;
 
-  if(!global->trace_stream) {
+  if(!global->trace_stream && !global->trace_fopened) {
     /* open for append */
     if(!strcmp("-", global->trace_dump))
       global->trace_stream = stdout;
@@ -176,16 +176,14 @@ int tool_debug_cb(CURL *handle, curl_infotype type,
     else {
       global->trace_stream = curlx_fopen(global->trace_dump, FOPEN_WRITETEXT);
       global->trace_fopened = TRUE;
+      if(!global->trace_stream)
+        warnf("Failed to create/open output");
     }
   }
 
-  if(global->trace_stream)
-    output = global->trace_stream;
-
-  if(!output) {
-    warnf("Failed to create/open output");
+  output = global->trace_stream;
+  if(!output)
     return 0;
-  }
 
   if(global->tracetype == TRACE_PLAIN) {
     static bool newl = FALSE;
