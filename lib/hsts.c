@@ -397,7 +397,11 @@ CURLcode Curl_hsts_save(struct Curl_easy *data, struct hsts *h,
       n = Curl_node_next(e);
       hsts_out(sts, out);
     }
-    curlx_fclose(out);
+    /* Publish only after all buffered data has reached the file. */
+    if(fflush(out) || ferror(out))
+      result = CURLE_WRITE_ERROR;
+    if(curlx_fclose(out))
+      result = CURLE_WRITE_ERROR;
     if(!result && tempstore && curlx_rename(tempstore, file))
       result = CURLE_WRITE_ERROR;
 
@@ -413,10 +417,13 @@ skipsave:
     i.index = 0;
     for(e = Curl_llist_head(&h->list); e; e = n) {
       struct stsentry *sts = Curl_node_elem(e);
+      CURLcode push_result;
       bool stop;
       n = Curl_node_next(e);
-      result = hsts_push(data, &i, sts, &stop);
-      if(result || stop)
+      push_result = hsts_push(data, &i, sts, &stop);
+      if(!result)
+        result = push_result;
+      if(push_result || stop)
         break;
       i.index++;
     }
