@@ -100,7 +100,6 @@ struct ldapconninfo {
   Curl_send *send;
   struct berval *servercred; /* SASL data from server. */
   ldapstate state;           /* Current machine state. */
-  curl_socket_t dupfd;       /* duplicated socket */
   int proto;                 /* LDAP_PROTO_TCP/LDAP_PROTO_UDP/LDAP_PROTO_IPC */
   int msgid;                 /* Current message id. */
   bool send_blocked;         /* last TLS send returned CURLE_AGAIN */
@@ -443,19 +442,16 @@ static int ldapsb_tls_remove(Sockbuf_IO_Desc *sbiod)
   return 0;
 }
 
-/* if there is a duplicated socket to close, close it */
 static int ldapsb_tls_close(Sockbuf_IO_Desc *sbiod)
 {
-  struct Curl_easy *data = sbiod->sbiod_pvt;
-  if(data) {
-    struct connectdata *conn = data->conn;
-    if(conn) {
-      struct ldapconninfo *li = Curl_conn_meta_get(conn, CURL_META_LDAP_CONN);
-      if(li && (li->dupfd != CURL_SOCKET_BAD)) {
-        sclose(li->dupfd);
-        li->dupfd = CURL_SOCKET_BAD;
-      }
-    }
+  Sockbuf *sb = sbiod->sbiod_sb;
+  ber_socket_t fd;
+
+  if(ber_sockbuf_ctrl(sb, LBER_SB_OPT_GET_FD, &fd) > 0) {
+    ber_socket_t badfd = (ber_socket_t)CURL_SOCKET_BAD;
+    /* The provider's close callback checks the same fd later. */
+    ber_sockbuf_ctrl(sb, LBER_SB_OPT_SET_FD, &badfd);
+    sclose((curl_socket_t)fd);
   }
 
   return 0;
@@ -640,8 +636,6 @@ static CURLcode oldap_connect(struct Curl_easy *data, bool *done)
     result = CURLE_OUT_OF_MEMORY;
     goto out;
   }
-  li->dupfd = CURL_SOCKET_BAD;
-
   result = Curl_conn_meta_set(conn, CURL_META_LDAP_CONN, li, oldap_conn_dtor);
   if(result)
     goto out;
@@ -697,11 +691,6 @@ static CURLcode oldap_connect(struct Curl_easy *data, bool *done)
     rc = ldap_init_fd((ber_socket_t)dupfd, li->proto, hosturl, &li->ld);
     if(rc)
       sclose(dupfd);
-    else
-      /* store the socket, as when this is used by TLS we close this ourselves
-         and at this point the code does not yet know if this will use TLS or
-         not */
-      li->dupfd = dupfd;
   }
   if(rc) {
     failf(data, "LDAP local: Cannot connect to %s, %s",
