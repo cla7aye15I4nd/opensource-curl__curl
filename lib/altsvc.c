@@ -461,7 +461,11 @@ CURLcode Curl_altsvc_save(struct Curl_easy *data,
       if(result)
         break;
     }
-    curlx_fclose(out);
+    /* Publish only after all buffered data has reached the file. */
+    if(fflush(out) || ferror(out))
+      result = CURLE_WRITE_ERROR;
+    if(curlx_fclose(out))
+      result = CURLE_WRITE_ERROR;
     if(!result && tempstore && curlx_rename(tempstore, file))
       result = CURLE_WRITE_ERROR;
 
