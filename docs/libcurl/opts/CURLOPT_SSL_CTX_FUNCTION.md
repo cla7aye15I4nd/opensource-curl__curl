@@ -102,9 +102,10 @@ callback function has returned. Your application must not assume that it can
 keep using the SSL context or data derived from it once this function is
 completed.
 
-For libcurl builds using TLS backends that support CA caching and
-CURLOPT_CA_CACHE_TIMEOUT(3) is not set to zero, multiple calls to this
-callback may be done with the same CA store in memory.
+OpenSSL and wolfSSL use a private CA store for a new connection when this
+callback is set. Changes the callback makes to the store apply to that
+connection. The connection and session reuse considerations above still
+apply.
 
 # DEFAULT
 

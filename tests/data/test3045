@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTPS
+CURLOPT_SSL_CTX_FUNCTION
+CA cache
+libtest
+</keywords>
+</info>
+
+<reply>
+<data crlf="headers" nocheck="yes">
+HTTP/1.1 200 OK
+Content-Length: 0
+
+</data>
+</reply>
+
+<client>
+<server>
+https
+</server>
+<features>
+OpenSSL
+</features>
+<name>
+SSL context callback trust stays private to its TLS connection
+</name>
+<command>
+https://localhost:%HTTPSPORT/%TESTNUMBER %CERTDIR/certs/test-client-cert.crt %CERTDIR/certs/test-ca.crt
+</command>
+</client>
+
+<verify>
+<errorcode>
+0
+</errorcode>
+</verify>
+</testcase>
