@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP GET
+--trace-ascii
+</keywords>
+</info>
+<reply>
+<data crlf="headers">
+HTTP/1.1 200 OK
+Content-Length: 3
+
+OK
+</data>
+</reply>
+<client>
+<server>
+http
+</server>
+<setenv>
+COLUMNS=10000
+</setenv>
+<name>
+Failed trace file open does not leak credentials to stderr
+</name>
+<file name="%LOGDIR/trace-parent">
+regular file
+</file>
+<command>
+http://%HOSTIP:%HTTPPORT/%TESTNUMBER -u fixture:mypass --no-progress-meter --trace-ascii %LOGDIR/trace-parent/trace.txt
+</command>
+</client>
+<verify>
+<protocol crlf="headers">
+GET /%TESTNUMBER HTTP/1.1
+Host: %HOSTIP:%HTTPPORT
+Authorization: Basic Zml4dHVyZTpteXBhc3M=
+User-Agent: curl/%VERSION
+Accept: */*
+
+</protocol>
+<stderr mode="warn">
+Warning: Failed to create/open output
+</stderr>
+</verify>
+</testcase>
