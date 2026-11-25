@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+FTP
+post-quote
+partial write
+</keywords>
+</info>
+
+<reply>
+<data>
+Download before post-transfer commands.
+</data>
+<servercmd>
+REPLY NOOP 200 First command accepted\r\n200 Early response to the long command
+REPLY SITE 200 Long command accepted
+REPLY NOO 200 Last command accepted
+</servercmd>
+</reply>
+
+<client>
+<features>
+Debug
+</features>
+<server>
+ftp
+</server>
+<name>
+FTP postquote finishes a partial write before using an early reply
+</name>
+<setenv>
+CURL_DBG_SOCK_WPARTIAL=50
+</setenv>
+<command>
+ftp://%HOSTIP:%FTPPORT/%TESTNUMBER -Q "-NOOP 1" -Q "-SITE 1234567890123456789012345678901234567890" -Q "-*NOO 3"
+</command>
+</client>
+
+<verify>
+<protocol crlf="yes">
+USER anonymous
+PASS ftp@example.com
+PWD
+EPSV
+TYPE I
+SIZE %TESTNUMBER
+RETR %TESTNUMBER
+NOOP 1
+SITE 1234567890123456789012345678901234567890
+NOO 3
+</protocol>
+</verify>
+</testcase>
