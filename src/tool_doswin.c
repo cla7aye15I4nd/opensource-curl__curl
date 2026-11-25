@@ -676,6 +676,16 @@ static void init_terminal(void)
 #ifdef USE_WINSOCK
 /* The following STDIN non - blocking read techniques are heavily inspired
    by nmap and ncat (https://nmap.org/ncat/) */
+static curl_socket_t socket_r = CURL_SOCKET_BAD;
+
+void win32_stdin_relay_cleanup(void)
+{
+  if(socket_r != CURL_SOCKET_BAD) {
+    sclose(socket_r);
+    socket_r = CURL_SOCKET_BAD;
+  }
+}
+
 static struct win_thread_data {
   /* This is a copy of the true stdin file handle before any redirection. It is
      read by the thread. */
@@ -820,7 +830,6 @@ curl_socket_t win32_stdin_read_thread(void)
 {
   int rc = 0;
   HANDLE stdin_thread = NULL;
-  static curl_socket_t socket_r = CURL_SOCKET_BAD;
   curl_socket_t socket_l = CURL_SOCKET_BAD;
   uint64_t auth_rnd = 0;
   uint64_t recvd_val = 1;
@@ -868,6 +877,11 @@ curl_socket_t win32_stdin_read_thread(void)
     socket_r = CURL_SOCKET(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(socket_r == CURL_SOCKET_BAD) {
       errorf("socket error: %d", SOCKERRNO);
+      break;
+    }
+
+    if(!socket_r || socket_r > INT_MAX) {
+      warnf("stdin relay socket is outside the input descriptor range");
       break;
     }
 
@@ -953,17 +967,14 @@ curl_socket_t win32_stdin_read_thread(void)
   if(rc != 1) {
     /* we rely on the background thread not running at this point, as there
      * could be TOCTOU bugs otherwise */
-    if(socket_r != CURL_SOCKET_BAD) {
-      if(GetStdHandle(STD_INPUT_HANDLE) == (HANDLE)socket_r &&
-         tdata.stdin_handle) {
-        /* restore STDIN */
-        SetStdHandle(STD_INPUT_HANDLE, tdata.stdin_handle);
-        tdata.stdin_handle = NULL;
-      }
-
-      sclose(socket_r);
-      socket_r = CURL_SOCKET_BAD;
+    if(socket_r != CURL_SOCKET_BAD &&
+       GetStdHandle(STD_INPUT_HANDLE) == (HANDLE)socket_r &&
+       tdata.stdin_handle) {
+      /* restore STDIN */
+      SetStdHandle(STD_INPUT_HANDLE, tdata.stdin_handle);
+      tdata.stdin_handle = NULL;
     }
+    win32_stdin_relay_cleanup();
 
     if(socket_l != CURL_SOCKET_BAD)
       sclose(socket_l);
