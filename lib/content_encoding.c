@@ -595,7 +595,19 @@ static CURLcode zstd_do_init(struct Curl_easy *data,
   zp->zds = ZSTD_createDStream();
 #endif
 
-  return zp->zds ? CURLE_OK : CURLE_OUT_OF_MEMORY;
+  if(!zp->zds)
+    return CURLE_OUT_OF_MEMORY;
+
+#if ZSTD_VERSION_NUMBER >= 10400
+  /* Limit streaming history to the HTTP zstd window of 8 MiB (RFC 9659). */
+  if(ZSTD_isError(ZSTD_DCtx_setParameter(zp->zds, ZSTD_d_windowLogMax, 23))) {
+    ZSTD_freeDStream(zp->zds);
+    zp->zds = NULL;
+    return CURLE_FAILED_INIT;
+  }
+#endif
+
+  return CURLE_OK;
 }
 
 static CURLcode zstd_do_write(struct Curl_easy *data,
